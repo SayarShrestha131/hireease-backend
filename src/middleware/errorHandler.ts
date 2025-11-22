@@ -1,27 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-
-/**
- * Custom error class with status code
- */
-export class AppError extends Error {
-  statusCode: number;
-  isOperational: boolean;
-
-  constructor(message: string, statusCode: number = 500) {
-    super(message);
-    this.statusCode = statusCode;
-    this.isOperational = true;
-
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
+import { AppError, ValidationError, ConflictError, AuthenticationError } from '../utils/errors';
 
 /**
  * Global error handling middleware
  * Catches errors from routes and formats responses consistently
  */
 export const errorHandler = (
-  err: Error | AppError,
+  err: any,
   req: Request,
   res: Response,
   next: NextFunction
@@ -29,11 +14,27 @@ export const errorHandler = (
   // Default to 500 Internal Server Error
   let statusCode = 500;
   let message = 'Internal Server Error';
+  let errors: Array<{ field: string; message: string }> | undefined;
 
-  // Check if it's our custom AppError
-  if (err instanceof AppError) {
+  // Handle custom error classes
+  if (err instanceof ValidationError) {
     statusCode = err.statusCode;
     message = err.message;
+  } else if (err instanceof ConflictError) {
+    statusCode = err.statusCode;
+    message = err.message;
+  } else if (err instanceof AuthenticationError) {
+    statusCode = err.statusCode;
+    message = err.message;
+  } else if (err instanceof AppError) {
+    // Handle base AppError class
+    statusCode = err.statusCode;
+    message = err.message;
+  } else if (err.validationErrors) {
+    // Handle express-validator validation errors
+    statusCode = err.statusCode || 400;
+    message = err.message || 'Validation failed';
+    errors = err.validationErrors;
   } else if (err.name === 'ValidationError') {
     // Handle Mongoose validation errors
     statusCode = 400;
@@ -54,17 +55,23 @@ export const errorHandler = (
   // Build error response
   const errorResponse: {
     success: boolean;
-    message: string;
-    error?: string;
+    error: {
+      message: string;
+      statusCode: number;
+      errors?: Array<{ field: string; message: string }>;
+    };
     stack?: string;
   } = {
     success: false,
-    message,
+    error: {
+      message,
+      statusCode,
+      errors,
+    },
   };
 
-  // Include error details and stack trace only in development mode
+  // Include stack trace only in development mode
   if (process.env.NODE_ENV === 'development') {
-    errorResponse.error = err.message;
     errorResponse.stack = err.stack;
   }
 

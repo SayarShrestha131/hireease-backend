@@ -2,6 +2,28 @@ import { body, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
 
 /**
+ * Helper function to handle validation results
+ * Throws error with validation details if validation fails
+ */
+const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const validationErrors = errors.array().map(err => ({
+      field: err.type === 'field' ? err.path : 'unknown',
+      message: err.msg
+    }));
+    
+    // Create error object with validation details
+    const error: any = new Error('Validation failed');
+    error.statusCode = 400;
+    error.validationErrors = validationErrors;
+    
+    return next(error);
+  }
+  next();
+};
+
+/**
  * Validation middleware for user registration
  * Requirements: 1.3, 1.4
  */
@@ -19,23 +41,7 @@ export const validateRegister = [
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
   
-  (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          statusCode: 400,
-          errors: errors.array().map(err => ({
-            field: err.type === 'field' ? err.path : 'unknown',
-            message: err.msg
-          }))
-        }
-      });
-    }
-    next();
-  }
+  handleValidationErrors
 ];
 
 /**
@@ -52,21 +58,5 @@ export const validateLogin = [
     .notEmpty()
     .withMessage('Password is required'),
   
-  (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          message: 'Validation failed',
-          statusCode: 400,
-          errors: errors.array().map(err => ({
-            field: err.type === 'field' ? err.path : 'unknown',
-            message: err.msg
-          }))
-        }
-      });
-    }
-    next();
-  }
+  handleValidationErrors
 ];
