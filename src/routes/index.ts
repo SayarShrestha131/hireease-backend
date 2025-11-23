@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import authRoutes from './authRoutes';
+import passwordRoutes from './passwordRoutes';
 
 const router = Router();
 
@@ -9,6 +10,12 @@ const router = Router();
  * Accessible at /api/auth/*
  */
 router.use('/auth', authRoutes);
+
+/**
+ * Mount password routes at /auth
+ * Accessible at /api/auth/*
+ */
+router.use('/auth', passwordRoutes);
 
 /**
  * Health check endpoint

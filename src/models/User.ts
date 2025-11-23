@@ -1,13 +1,17 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 // IUser interface defining the structure of a User document
 export interface IUser extends Document {
   email: string;
   password: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
+  generateResetToken(): string;
 }
 
 // User schema definition
@@ -24,6 +28,14 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
       minlength: 6,
+    },
+    resetPasswordToken: {
+      type: String,
+      required: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      required: false,
     },
   },
   {
@@ -59,6 +71,24 @@ userSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Instance method to generate password reset token
+userSchema.methods.generateResetToken = function (): string {
+  // Generate random token (32 bytes = 64 hex characters)
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // Hash the token and store it in the database
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // Set expiration to 1 hour from now
+  this.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
+
+  // Return the unhashed token to send via email
+  return resetToken;
 };
 
 // Create and export the User model
