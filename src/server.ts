@@ -1,4 +1,5 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import { config } from './config/env';
 import { connectDatabase } from './config/database';
 import routes from './routes';
@@ -12,6 +13,14 @@ const app: Application = express();
 /**
  * Middleware Configuration
  */
+
+// Enable CORS for all origins in development
+app.use(cors({
+  origin: '*', // Allow all origins in development
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 
 // Parse incoming JSON request bodies
 app.use(express.json());
@@ -44,10 +53,11 @@ const startServer = async (): Promise<void> => {
     // Connect to MongoDB Atlas
     await connectDatabase();
 
-    // Start HTTP server
-    const server = app.listen(config.port, () => {
+    // Start HTTP server - bind to 0.0.0.0 to allow external connections
+    const server = app.listen(config.port, '0.0.0.0', () => {
       console.log(`✓ Server running on port ${config.port}`);
       console.log(`✓ Environment: ${config.nodeEnv}`);
+      console.log(`✓ Server accessible at http://0.0.0.0:${config.port}`);
       console.log(`✓ Server ready to accept requests`);
     });
 
