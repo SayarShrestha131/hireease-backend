@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { register, login } from '../controllers/authController';
-import { validateRegister, validateLogin } from '../middleware/validation';
+import { register, login, verifyEmail, resendVerification } from '../controllers/authController';
+import { validateRegister, validateLogin, validateVerifyEmail, validateResendVerification } from '../middleware/validation';
 
 const router = Router();
 
@@ -10,6 +10,18 @@ const router = Router();
  * Requirements: 1.1
  */
 router.post('/register', validateRegister, register);
+
+/**
+ * Verify email with code
+ * POST /api/auth/verify-email
+ */
+router.post('/verify-email', validateVerifyEmail, verifyEmail);
+
+/**
+ * Resend verification code
+ * POST /api/auth/resend-verification
+ */
+router.post('/resend-verification', validateResendVerification, resendVerification);
 
 /**
  * Login an existing user

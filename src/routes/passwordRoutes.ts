@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { forgotPassword, resetPassword, changePassword } from '../controllers/passwordController';
+import { forgotPassword, verifyResetCode, resetPassword, changePassword } from '../controllers/passwordController';
 import { authenticate } from '../middleware/auth';
 import { body, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
@@ -41,12 +41,45 @@ const validateForgotPassword = [
 ];
 
 /**
+ * Validation middleware for verify reset code
+ */
+const validateVerifyCode = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Email must be in valid format'),
+  
+  body('code')
+    .notEmpty()
+    .withMessage('Verification code is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Code must be 6 digits')
+    .isNumeric()
+    .withMessage('Code must contain only numbers'),
+  
+  handleValidationErrors
+];
+
+/**
  * Validation middleware for reset password
  */
 const validateResetPassword = [
-  body('token')
+  body('email')
+    .trim()
     .notEmpty()
-    .withMessage('Reset token is required'),
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Email must be in valid format'),
+  
+  body('code')
+    .notEmpty()
+    .withMessage('Verification code is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Code must be 6 digits')
+    .isNumeric()
+    .withMessage('Code must contain only numbers'),
   
   body('newPassword')
     .notEmpty()
@@ -75,14 +108,21 @@ const validateChangePassword = [
 ];
 
 /**
- * Forgot password - Send password reset email
+ * Forgot password - Send password reset code via email
  * POST /api/auth/forgot-password
  * Requirements: 1.1
  */
 router.post('/forgot-password', validateForgotPassword, forgotPassword);
 
 /**
- * Reset password - Update password using reset token
+ * Verify reset code - Verify the 6-digit code
+ * POST /api/auth/verify-reset-code
+ * Requirements: 2.1
+ */
+router.post('/verify-reset-code', validateVerifyCode, verifyResetCode);
+
+/**
+ * Reset password - Update password using reset code
  * POST /api/auth/reset-password
  * Requirements: 2.1
  */

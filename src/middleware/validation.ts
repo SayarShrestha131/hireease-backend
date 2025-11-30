@@ -45,6 +45,42 @@ export const validateRegister = [
 ];
 
 /**
+ * Validation middleware for email verification
+ */
+export const validateVerifyEmail = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Email must be in valid format'),
+  
+  body('code')
+    .notEmpty()
+    .withMessage('Verification code is required')
+    .isLength({ min: 6, max: 6 })
+    .withMessage('Code must be 6 digits')
+    .isNumeric()
+    .withMessage('Code must contain only numbers'),
+  
+  handleValidationErrors
+];
+
+/**
+ * Validation middleware for resend verification
+ */
+export const validateResendVerification = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required')
+    .isEmail()
+    .withMessage('Email must be in valid format'),
+  
+  handleValidationErrors
+];
+
+/**
  * Validation middleware for user login
  * Requirements: 2.3
  */

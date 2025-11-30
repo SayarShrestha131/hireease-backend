@@ -4,7 +4,7 @@ import User from '../models/User';
 import { sendEmail } from '../utils/emailService';
 
 /**
- * Forgot password - Send password reset email
+ * Forgot password - Send password reset code via email
  * @route POST /api/auth/forgot-password
  */
 export const forgotPassword = async (
@@ -22,43 +22,40 @@ export const forgotPassword = async (
     if (!user) {
       res.status(200).json({
         success: true,
-        message: 'If an account exists, a password reset email has been sent',
+        message: 'If an account exists, a password reset code has been sent',
       });
       return;
     }
 
-    // Generate reset token
-    const resetToken = user.generateResetToken();
+    // Generate 6-digit reset code
+    const resetCode = user.generateResetCode();
 
-    // Save user with reset token and expiration
+    // Save user with reset code and expiration
     await user.save();
 
-    // Construct reset URL with token
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-
     // Email content
-    const message = `You are receiving this email because you (or someone else) has requested a password reset for your account.\n\nPlease click on the following link to reset your password:\n\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`;
+    const message = `You are receiving this email because you (or someone else) has requested a password reset for your account.\n\nYour password reset code is:\n\n${resetCode}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`;
 
     const htmlMessage = `
       <h2>Password Reset Request</h2>
       <p>You are receiving this email because you (or someone else) has requested a password reset for your account.</p>
-      <p>Please click on the following link to reset your password:</p>
-      <p><a href="${resetUrl}">${resetUrl}</a></p>
-      <p>This link will expire in 1 hour.</p>
+      <p>Your password reset code is:</p>
+      <h1 style="font-size: 32px; letter-spacing: 8px; color: #0096c7; font-weight: bold;">${resetCode}</h1>
+      <p>This code will expire in 15 minutes.</p>
       <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
     `;
 
     // Send email
     await sendEmail({
       to: user.email,
-      subject: 'Password Reset Request',
+      subject: 'Password Reset Code',
       text: message,
       html: htmlMessage,
     });
 
     res.status(200).json({
       success: true,
-      message: 'If an account exists, a password reset email has been sent',
+      message: 'If an account exists, a password reset code has been sent',
     });
   } catch (error) {
     next(error);
@@ -66,7 +63,59 @@ export const forgotPassword = async (
 };
 
 /**
- * Reset password - Update password using reset token
+ * Verify reset code - Verify the 6-digit code
+ * @route POST /api/auth/verify-reset-code
+ */
+export const verifyResetCode = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email, code } = req.body;
+
+    // Validate code format (6 digits)
+    if (!code || !/^\d{6}$/.test(code)) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid code format',
+      });
+      return;
+    }
+
+    // Hash the incoming code to match against stored hash
+    const hashedCode = crypto
+      .createHash('sha256')
+      .update(code)
+      .digest('hex');
+
+    // Find user with matching email, code, and valid expiration
+    const user = await User.findOne({
+      email,
+      resetPasswordCode: hashedCode,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    // Check if code is invalid or expired
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid or expired code',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Code verified successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Reset password - Update password using reset code
  * @route POST /api/auth/reset-password
  */
 export const resetPassword = async (
@@ -75,7 +124,7 @@ export const resetPassword = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { token, newPassword } = req.body;
+    const { email, code, newPassword } = req.body;
 
     // Validate new password meets minimum length requirement
     if (!newPassword || newPassword.length < 6) {
@@ -86,23 +135,33 @@ export const resetPassword = async (
       return;
     }
 
-    // Hash the incoming token to match against stored hash
-    const hashedToken = crypto
+    // Validate code format (6 digits)
+    if (!code || !/^\d{6}$/.test(code)) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid code format',
+      });
+      return;
+    }
+
+    // Hash the incoming code to match against stored hash
+    const hashedCode = crypto
       .createHash('sha256')
-      .update(token)
+      .update(code)
       .digest('hex');
 
-    // Find user with matching token and valid expiration
+    // Find user with matching email, code, and valid expiration
     const user = await User.findOne({
-      resetPasswordToken: hashedToken,
+      email,
+      resetPasswordCode: hashedCode,
       resetPasswordExpires: { $gt: Date.now() },
     });
 
-    // Check if token is invalid or expired
+    // Check if code is invalid or expired
     if (!user) {
       res.status(400).json({
         success: false,
-        error: 'Invalid or expired reset token',
+        error: 'Invalid or expired code',
       });
       return;
     }
@@ -110,8 +169,8 @@ export const resetPassword = async (
     // Update user password
     user.password = newPassword;
     
-    // Clear reset token and expiration fields
-    user.resetPasswordToken = undefined;
+    // Clear reset code and expiration fields
+    user.resetPasswordCode = undefined;
     user.resetPasswordExpires = undefined;
 
     // Save user (password will be hashed by pre-save hook)
