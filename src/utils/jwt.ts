@@ -13,6 +13,7 @@ export const generateToken = (userId: string): string => {
     throw new Error('JWT_SECRET is not defined in environment variables');
   }
 
+  // @ts-ignore - expiresIn type issue with jsonwebtoken
   const token = jwt.sign(
     { userId },
     secret,

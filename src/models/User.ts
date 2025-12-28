@@ -2,10 +2,51 @@ import mongoose, { Document, Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
+// Contact Information interface
+export interface IContactInfo {
+  phone?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  postalCode?: string;
+}
+
+// Emergency Contact interface
+export interface IEmergencyContact {
+  name: string;
+  relationship: string;
+  phone: string;
+}
+
+// Notification Preferences interface
+export interface INotificationPreferences {
+  email: boolean;
+  sms: boolean;
+  push: boolean;
+  bookingUpdates: boolean;
+  promotions: boolean;
+  reminders: boolean;
+}
+
+// Document interface
+export interface IDocument {
+  type: string; // 'license', 'id', 'insurance', etc.
+  url: string;
+  uploadedAt: Date;
+  verified: boolean;
+}
+
 // IUser interface defining the structure of a User document
 export interface IUser extends Document {
   email: string;
   password: string;
+  role: 'user' | 'admin';
+  username?: string;
+  dateOfBirth?: Date;
+  contactInfo?: IContactInfo;
+  emergencyContacts?: IEmergencyContact[];
+  notificationPreferences?: INotificationPreferences;
+  documents?: IDocument[];
   isEmailVerified: boolean;
   emailVerificationCode?: string;
   emailVerificationExpires?: Date;
@@ -33,6 +74,50 @@ const userSchema = new Schema<IUser>(
       required: true,
       minlength: 6,
     },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
+    },
+    username: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    dateOfBirth: {
+      type: Date,
+      required: false,
+    },
+    contactInfo: {
+      phone: { type: String, required: false },
+      address: { type: String, required: false },
+      city: { type: String, required: false },
+      country: { type: String, required: false },
+      postalCode: { type: String, required: false },
+    },
+    emergencyContacts: [
+      {
+        name: { type: String, required: true },
+        relationship: { type: String, required: true },
+        phone: { type: String, required: true },
+      },
+    ],
+    notificationPreferences: {
+      email: { type: Boolean, default: true },
+      sms: { type: Boolean, default: false },
+      push: { type: Boolean, default: true },
+      bookingUpdates: { type: Boolean, default: true },
+      promotions: { type: Boolean, default: false },
+      reminders: { type: Boolean, default: true },
+    },
+    documents: [
+      {
+        type: { type: String, required: true },
+        url: { type: String, required: true },
+        uploadedAt: { type: Date, default: Date.now },
+        verified: { type: Boolean, default: false },
+      },
+    ],
     isEmailVerified: {
       type: Boolean,
       default: false,
@@ -57,8 +142,10 @@ const userSchema = new Schema<IUser>(
   {
     timestamps: true,
     toJSON: {
-      transform: function (doc, ret) {
+      transform: function (doc, ret: any) {
         delete ret.password;
+        delete ret.emailVerificationCode;
+        delete ret.resetPasswordCode;
         return ret;
       },
     },

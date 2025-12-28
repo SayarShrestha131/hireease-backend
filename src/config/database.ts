@@ -9,6 +9,9 @@ import { config } from './env';
 export const connectDatabase = async (): Promise<void> => {
   try {
     // Connect to MongoDB Atlas using the URI from environment variables
+    if (!config.mongoUri) {
+      throw new Error('MongoDB URI is not defined in environment variables');
+    }
     await mongoose.connect(config.mongoUri);
 
     console.log('✓ MongoDB Atlas connected successfully');

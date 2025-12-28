@@ -1,21 +1,13 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
-
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
+import { AuthRequest } from '../types/auth';
 
 /**
  * Middleware to verify JWT token and attach user to request
  */
 export const authenticate = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
