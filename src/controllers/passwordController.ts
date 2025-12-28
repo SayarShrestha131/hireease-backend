@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import User from '../models/User';
 import { sendEmail } from '../utils/emailService';
+import { AuthRequest } from '../types/auth';
 
 /**
  * Forgot password - Send password reset code via email
@@ -190,7 +191,7 @@ export const resetPassword = async (
  * @route POST /api/auth/change-password
  */
 export const changePassword = async (
-  req: Request,
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {

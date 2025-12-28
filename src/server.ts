@@ -28,6 +28,9 @@ app.use(express.json());
 // Parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   const timestamp = new Date().toISOString();

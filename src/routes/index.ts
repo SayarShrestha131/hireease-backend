@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import authRoutes from './authRoutes';
 import passwordRoutes from './passwordRoutes';
+import profileRoutes from './profileRoutes';
+import vehicleRoutes from './vehicleRoutes';
 
 const router = Router();
 
@@ -18,6 +20,18 @@ router.use('/auth', authRoutes);
 router.use('/auth', passwordRoutes);
 
 /**
+ * Mount profile routes at /profile
+ * Accessible at /api/profile/*
+ */
+router.use('/profile', profileRoutes);
+
+/**
+ * Mount vehicle routes at /vehicles
+ * Accessible at /api/vehicles/*
+ */
+router.use('/vehicles', vehicleRoutes);
+
+/**
  * Health check endpoint
  * Returns server status and database connection state
  * GET /health
@@ -31,12 +45,13 @@ router.get('/health', (req: Request, res: Response) => {
   // 2 = connecting
   // 3 = disconnecting
   
-  const dbStatus = {
+  const dbStatusMap: Record<number, string> = {
     0: 'disconnected',
     1: 'connected',
     2: 'connecting',
     3: 'disconnecting'
-  }[dbState] || 'unknown';
+  };
+  const dbStatus = dbStatusMap[dbState] || 'unknown';
 
   const isHealthy = dbState === 1;
 

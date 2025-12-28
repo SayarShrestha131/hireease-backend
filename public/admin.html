@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Vehicle Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center px-4">
+        <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Admin Panel</h1>
+            <p class="text-gray-600 mb-6">Vehicle Management System</p>
+            
+            <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
+            
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="loginEmail" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="loginPassword" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <button type="submit" 
+                    class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="hidden min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">Vehicle Management</h1>
+                <div class="flex items-center space-x-4">
+                    <span id="adminEmail" class="text-gray-600"></span>
+                    <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Add Vehicle Form -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">Add New Vehicle</h2>
+                
+                <div id="vehicleError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
+                <div id="vehicleSuccess" class="hidden bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4"></div>
+                
+                <form id="vehicleForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Vehicle Name *</label>
+                        <input type="text" name="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Brand *</label>
+                        <input type="text" name="brand" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Model *</label>
+                        <input type="text" name="model" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Year *</label>
+                        <input type="number" name="year" required min="2000" max="2025" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+                        <select name="type" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="">Select Type</option>
+                            <option value="sedan">Sedan</option>
+                            <option value="suv">SUV</option>
+                            <option value="hatchback">Hatchback</option>
+                            <option value="truck">Truck</option>
+                            <option value="van">Van</option>
+                            <option value="sports">Sports</option>
+                            <option value="electric">Electric</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Fuel Type *</label>
+                        <select name="fuelType" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="">Select Fuel Type</option>
+                            <option value="petrol">Petrol</option>
+                            <option value="diesel">Diesel</option>
+                            <option value="electric">Electric</option>
+                            <option value="hybrid">Hybrid</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Transmission *</label>
+                        <select name="transmission" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <option value="">Select Transmission</option>
+                            <option value="manual">Manual</option>
+                            <option value="automatic">Automatic</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Seats *</label>
+                        <input type="number" name="seats" required min="2" max="12" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Price Per Day (Rs.) *</label>
+                        <input type="number" name="pricePerDay" required min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Location *</label>
+                        <input type="text" name="location" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                        <input type="text" name="color" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Engine</label>
+                        <input type="text" name="engine" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Power</label>
+                        <input type="text" name="power" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Mileage</label>
+                        <input type="text" name="mileage" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                        <textarea name="description" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Features (comma separated)</label>
+                        <input type="text" name="features" placeholder="AC, GPS, Bluetooth, etc." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" name="isAvailable" checked class="mr-2">
+                            <span class="text-sm font-medium text-gray-700">Available for Rent</span>
+                        </label>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                            Add Vehicle
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Vehicle List -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">All Vehicles</h2>
+                <div id="vehicleList" class="space-y-4">
+                    <p class="text-gray-500 text-center py-8">Loading vehicles...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Use current host for API URL (works for both localhost and network IP)
+        const API_URL = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api`;
+        let authToken = localStorage.getItem('adminToken');
+        
+        console.log('API URL:', API_URL);
+
+        // Check if already logged in
+        if (authToken) {
+            checkAuth();
+        }
+
+        // Login Form
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Check if user is admin
+                    if (data.data.user.role !== 'admin') {
+                        showError('loginError', 'Access denied. Admin privileges required.');
+                        return;
+                    }
+
+                    authToken = data.data.token;
+                    localStorage.setItem('adminToken', authToken);
+                    localStorage.setItem('adminEmail', data.data.user.email);
+                    showDashboard();
+                } else {
+                    // Handle error message properly
+                    let errorMessage = 'Login failed';
+                    if (typeof data.error === 'string') {
+                        errorMessage = data.error;
+                    } else if (data.error && data.error.message) {
+                        errorMessage = data.error.message;
+                    }
+                    showError('loginError', errorMessage);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('loginError', 'Network error. Please check if the backend server is running.');
+            }
+        });
+
+        // Vehicle Form
+        document.getElementById('vehicleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            const vehicleData = {
+                name: formData.get('name'),
+                brand: formData.get('brand'),
+                model: formData.get('model'),
+                year: parseInt(formData.get('year')),
+                type: formData.get('type'),
+                fuelType: formData.get('fuelType'),
+                transmission: formData.get('transmission'),
+                seats: parseInt(formData.get('seats')),
+                pricePerDay: parseFloat(formData.get('pricePerDay')),
+                description: formData.get('description'),
+                features: formData.get('features') ? formData.get('features').split(',').map(f => f.trim()) : [],
+                specifications: {
+                    color: formData.get('color'),
+                    engine: formData.get('engine'),
+                    power: formData.get('power'),
+                    mileage: formData.get('mileage')
+                },
+                availability: {
+                    isAvailable: formData.get('isAvailable') === 'on',
+                    location: formData.get('location')
+                }
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/vehicles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(vehicleData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess('vehicleSuccess', 'Vehicle added successfully!');
+                    e.target.reset();
+                    loadVehicles();
+                    setTimeout(() => hideMessage('vehicleSuccess'), 3000);
+                } else {
+                    // Handle error message properly
+                    let errorMessage = 'Failed to add vehicle';
+                    if (typeof data.error === 'string') {
+                        errorMessage = data.error;
+                    } else if (data.error && data.error.message) {
+                        errorMessage = data.error.message;
+                    }
+                    showError('vehicleError', errorMessage);
+                }
+            } catch (error) {
+                console.error('Vehicle creation error:', error);
+                showError('vehicleError', 'Network error. Please check if the backend server is running.');
+            }
+        });
+
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${API_URL}/profile`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.data.user.role === 'admin') {
+                        showDashboard();
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+            }
+            
+            logout();
+        }
+
+        function showDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            document.getElementById('adminEmail').textContent = localStorage.getItem('adminEmail');
+            loadVehicles();
+        }
+
+        async function loadVehicles() {
+            try {
+                const response = await fetch(`${API_URL}/vehicles`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const vehicleList = document.getElementById('vehicleList');
+                    if (data.data.vehicles.length === 0) {
+                        vehicleList.innerHTML = '<p class="text-gray-500 text-center py-8">No vehicles added yet</p>';
+                        return;
+                    }
+
+                    vehicleList.innerHTML = data.data.vehicles.map(vehicle => `
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800">${vehicle.name}</h3>
+                                    <p class="text-sm text-gray-600">${vehicle.brand} ${vehicle.model} (${vehicle.year})</p>
+                                    <p class="text-sm text-gray-600 mt-2">${vehicle.type} • ${vehicle.fuelType} • ${vehicle.transmission}</p>
+                                    <p class="text-sm text-gray-600">${vehicle.seats} seats • ${vehicle.availability.location}</p>
+                                    <p class="text-xl font-bold text-blue-600 mt-2">Rs. ${vehicle.pricePerDay.toLocaleString()}/day</p>
+                                </div>
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${vehicle.availability.isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                    ${vehicle.availability.isAvailable ? 'Available' : 'Unavailable'}
+                                </span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load vehicles:', error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminEmail');
+            authToken = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.remove('hidden');
+        }
+
+        function hideMessage(elementId) {
+            document.getElementById(elementId).classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
