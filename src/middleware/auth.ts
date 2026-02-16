@@ -55,3 +55,40 @@ export const authenticate = async (
     });
   }
 };
+
+/**
+ * Middleware to verify user has admin role
+ * Must be used after authenticate middleware
+ */
+export const requireAdmin = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Check if user is attached to request (should be done by authenticate middleware)
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: 'User not authenticated',
+      });
+      return;
+    }
+
+    // Check if user has admin role
+    if (req.user.role !== 'admin') {
+      res.status(403).json({
+        success: false,
+        error: 'Access denied. Admin privileges required.',
+      });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Error verifying admin privileges',
+    });
+  }
+};

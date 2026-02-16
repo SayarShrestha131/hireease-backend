@@ -4,6 +4,8 @@ import authRoutes from './authRoutes';
 import passwordRoutes from './passwordRoutes';
 import profileRoutes from './profileRoutes';
 import vehicleRoutes from './vehicleRoutes';
+import kycRoutes from './kycRoutes';
+import bookingRoutes from './bookingRoutes';
 
 const router = Router();
 
@@ -30,6 +32,18 @@ router.use('/profile', profileRoutes);
  * Accessible at /api/vehicles/*
  */
 router.use('/vehicles', vehicleRoutes);
+
+/**
+ * Mount KYC routes at /kyc
+ * Accessible at /api/kyc/*
+ */
+router.use('/kyc', kycRoutes);
+
+/**
+ * Mount booking routes at /bookings
+ * Accessible at /api/bookings/*
+ */
+router.use('/bookings', bookingRoutes);
 
 /**
  * Health check endpoint

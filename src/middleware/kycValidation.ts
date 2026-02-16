@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from 'express';
 
 /**
  * Helper function to handle validation results
- * Throws error with validation details if validation fails
  */
 const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
@@ -13,7 +12,6 @@ const handleValidationErrors = (req: Request, res: Response, next: NextFunction)
       message: err.msg
     }));
     
-    // Create error object with validation details
     const error: any = new Error('Validation failed');
     error.statusCode = 400;
     error.validationErrors = validationErrors;
@@ -24,82 +22,8 @@ const handleValidationErrors = (req: Request, res: Response, next: NextFunction)
 };
 
 /**
- * Validation middleware for user registration
- * Requirements: 1.3, 1.4
- */
-export const validateRegister = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required')
-    .isEmail()
-    .withMessage('Email must be in valid format'),
-  
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required')
-    .isLength({ min: 6 })
-    .withMessage('Password must be at least 6 characters long'),
-  
-  handleValidationErrors
-];
-
-/**
- * Validation middleware for email verification
- */
-export const validateVerifyEmail = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required')
-    .isEmail()
-    .withMessage('Email must be in valid format'),
-  
-  body('code')
-    .notEmpty()
-    .withMessage('Verification code is required')
-    .isLength({ min: 6, max: 6 })
-    .withMessage('Code must be 6 digits')
-    .isNumeric()
-    .withMessage('Code must contain only numbers'),
-  
-  handleValidationErrors
-];
-
-/**
- * Validation middleware for resend verification
- */
-export const validateResendVerification = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required')
-    .isEmail()
-    .withMessage('Email must be in valid format'),
-  
-  handleValidationErrors
-];
-
-/**
- * Validation middleware for user login
- * Requirements: 2.3
- */
-export const validateLogin = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required'),
-  
-  body('password')
-    .notEmpty()
-    .withMessage('Password is required'),
-  
-  handleValidationErrors
-];
-
-/**
  * Validation middleware for KYC submission
- * Requirements: 1.1, 1.2, 1.3
+ * Validates required fields: licenseNumber, fullName, dateOfBirth, licenseExpiryDate
  */
 export const validateKYCSubmission = [
   body('licenseNumber')
@@ -139,9 +63,9 @@ export const validateKYCSubmission = [
 
 /**
  * Validation middleware for KYC rejection
- * Requirements: 4.1, 4.2
+ * Validates that rejection reason is provided and minimum 10 characters
  */
-export const validateKYCRejection = [
+export const validateRejection = [
   body('reason')
     .trim()
     .notEmpty()

@@ -48,9 +48,24 @@ export const errorHandler = (
     message = err.message;
   }
 
-  // Log error with descriptive message
-  console.error(`[ERROR] ${statusCode} - ${message}`);
-  console.error(`[ERROR] Stack: ${err.stack}`);
+  // Log error with detailed information
+  const errorTimestamp = new Date().toISOString();
+  console.log('\n' + '!'.repeat(80));
+  console.log(`❌ ERROR HANDLER`);
+  console.log('!'.repeat(80));
+  console.log(`⏰ Time: ${errorTimestamp}`);
+  console.log(`🔗 Method: ${req.method}`);
+  console.log(`🌐 URL: ${req.originalUrl}`);
+  console.log(`📊 Status Code: ${statusCode}`);
+  console.log(`💥 Error Message: ${message}`);
+  console.log(`📝 Error Type: ${err.name || 'Unknown'}`);
+  
+  if (err.stack) {
+    console.log(`📚 Stack Trace:`);
+    console.log(err.stack);
+  }
+  
+  console.log('!'.repeat(80) + '\n');
 
   // Build error response
   const errorResponse: {

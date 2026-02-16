@@ -1,7 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types/auth';
 import User from '../models/User';
-import Booking from '../models/Booking';
+// import Booking from '../models/Booking'; // TODO: Implement Booking model
 import { ValidationError } from '../utils/errors';
 
 /**
@@ -95,6 +95,7 @@ export const updateProfile = async (
 /**
  * Get user booking history
  * @route GET /api/profile/bookings
+ * TODO: Implement once Booking model is created
  */
 export const getBookingHistory = async (
   req: AuthRequest,
@@ -102,15 +103,16 @@ export const getBookingHistory = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const userId = req.user?._id;
+    // const userId = req.user?._id;
+    // const bookings = await Booking.find({ userId }).sort({ createdAt: -1 });
 
-    const bookings = await Booking.find({ userId }).sort({ createdAt: -1 });
-
+    // Temporary response until Booking model is implemented
     res.status(200).json({
       success: true,
       data: {
-        bookings,
+        bookings: [],
       },
+      message: 'Booking history feature coming soon',
     });
   } catch (error) {
     next(error);

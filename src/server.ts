@@ -4,6 +4,7 @@ import { config } from './config/env';
 import { connectDatabase } from './config/database';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
 
 /**
  * Initialize Express application
@@ -31,12 +32,8 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from public directory
 app.use(express.static('public'));
 
-// Request logging middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path}`);
-  next();
-});
+// Detailed request/response logging middleware
+app.use(requestLogger);
 
 /**
  * Register API Routes

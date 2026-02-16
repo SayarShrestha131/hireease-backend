@@ -1,0 +1,243 @@
+<!-- Enhanced KYC Action UI - Insert this into the KYC modal -->
+<!-- Replace the existing action buttons section with this code -->
+
+<!-- Action Selection Buttons -->
+<div class="border-t pt-4">
+    <h3 class="font-bold text-gray-800 mb-4">Review Actions</h3>
+    
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Select Action</label>
+        <div class="grid grid-cols-3 gap-2">
+            <button onclick="selectAction('approve')" id="actionApprove"
+                    class="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-green-500 transition">
+                <span class="text-green-600 font-semibold text-sm">✓ Approve</span>
+            </button>
+            <button onclick="selectAction('reject')" id="actionReject"
+                    class="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-red-500 transition">
+                <span class="text-red-600 font-semibold text-sm">✗ Reject</span>
+            </button>
+            <button onclick="selectAction('resubmit')" id="actionResubmit"
+                    class="px-4 py-3 border-2 border-gray-300 rounded-lg hover:border-orange-500 transition">
+                <span class="text-orange-600 font-semibold text-sm">↻ Resubmit</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Approve Form -->
+    <div id="approveForm" class="hidden">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h4 class="font-semibold text-green-800 mb-2">Approve KYC Submission</h4>
+            <p class="text-sm text-green-700 mb-3">This will approve the user's KYC and allow them to book vehicles.</p>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Approval Note (Optional)</label>
+            <textarea id="approveNote" rows="3" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Add any notes about this approval..."></textarea>
+            <div class="flex space-x-2 mt-3">
+                <button onclick="submitApproval(currentSubmissionId)" 
+                        class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-semibold">
+                    Confirm Approval
+                </button>
+                <button onclick="cancelAction()" 
+                        class="px-6 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Form -->
+    <div id="rejectForm" class="hidden">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 class="font-semibold text-red-800 mb-2">Reject KYC Submission</h4>
+            <p class="text-sm text-red-700 mb-3">This will reject the submission. User will NOT be able to book vehicles.</p>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Rejection Reason (Required) *</label>
+            <textarea id="rejectReason" rows="4" required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      placeholder="Explain why this KYC is being rejected (minimum 10 characters)..."></textarea>
+            <p class="text-xs text-gray-500 mt-1">User will see this message. Be clear and professional.</p>
+            <div class="flex space-x-2 mt-3">
+                <button onclick="submitRejection(currentSubmissionId)" 
+                        class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-semibold">
+                    Confirm Rejection
+                </button>
+                <button onclick="cancelAction()" 
+                        class="px-6 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Request Resubmit Form -->
+    <div id="resubmitForm" class="hidden">
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <h4 class="font-semibold text-orange-800 mb-2">Request KYC Resubmission</h4>
+            <p class="text-sm text-orange-700 mb-3">This will reject the current submission and ask the user to resubmit with corrections.</p>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Resubmission (Required) *</label>
+            <textarea id="resubmitReason" rows="4" required
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      placeholder="Explain what needs to be corrected (e.g., 'License image is blurry, please upload a clearer photo')..."></textarea>
+            <p class="text-xs text-gray-500 mt-1">Be specific about what needs to be fixed. User will see this message.</p>
+            <div class="flex space-x-2 mt-3">
+                <button onclick="submitResubmitRequest(currentSubmissionId)" 
+                        class="flex-1 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 font-semibold">
+                    Request Resubmission
+                </button>
+                <button onclick="cancelAction()" 
+                        class="px-6 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variable to store current submission ID
+let currentSubmissionId = null;
+
+// Action selection functions
+function selectAction(action) {
+    // Hide all forms
+    const forms = ['approveForm', 'rejectForm', 'resubmitForm'];
+    forms.forEach(formId => {
+        const form = document.getElementById(formId);
+        if (form) form.classList.add('hidden');
+    });
+    
+    // Reset button styles
+    const buttons = ['actionApprove', 'actionReject', 'actionResubmit'];
+    buttons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.classList.remove('border-green-500', 'bg-green-50', 'border-red-500', 'bg-red-50', 'border-orange-500', 'bg-orange-50');
+        }
+    });
+    
+    // Show selected form and highlight button
+    if (action === 'approve') {
+        document.getElementById('approveForm')?.classList.remove('hidden');
+        document.getElementById('actionApprove')?.classList.add('border-green-500', 'bg-green-50');
+    } else if (action === 'reject') {
+        document.getElementById('rejectForm')?.classList.remove('hidden');
+        document.getElementById('actionReject')?.classList.add('border-red-500', 'bg-red-50');
+    } else if (action === 'resubmit') {
+        document.getElementById('resubmitForm')?.classList.remove('hidden');
+        document.getElementById('actionResubmit')?.classList.add('border-orange-500', 'bg-orange-50');
+    }
+}
+
+function cancelAction() {
+    // Hide all forms and reset buttons
+    const forms = ['approveForm', 'rejectForm', 'resubmitForm'];
+    forms.forEach(formId => {
+        const form = document.getElementById(formId);
+        if (form) form.classList.add('hidden');
+    });
+    
+    const buttons = ['actionApprove', 'actionReject', 'actionResubmit'];
+    buttons.forEach(btnId => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.classList.remove('border-green-500', 'bg-green-50', 'border-red-500', 'bg-red-50', 'border-orange-500', 'bg-orange-50');
+        }
+    });
+}
+
+async function submitApproval(submissionId) {
+    const note = document.getElementById('approveNote')?.value.trim();
+    
+    try {
+        const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/approve`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ reviewNote: note || undefined })
+        });
+        
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ KYC submission approved successfully!');
+            closeKYCModal();
+            loadKYCSubmissions();
+        } else {
+            alert('❌ Failed to approve: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Failed to approve KYC:', error);
+        alert('❌ Failed to approve KYC submission');
+    }
+}
+
+async function submitRejection(submissionId) {
+    const reason = document.getElementById('rejectReason')?.value.trim();
+    
+    if (!reason || reason.length < 10) {
+        alert('⚠️ Rejection reason must be at least 10 characters');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/reject`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ reason: reason })
+        });
+        
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ KYC submission rejected');
+            closeKYCModal();
+            loadKYCSubmissions();
+        } else {
+            alert('❌ Failed to reject: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Failed to reject KYC:', error);
+        alert('❌ Failed to reject KYC submission');
+    }
+}
+
+async function submitResubmitRequest(submissionId) {
+    const reason = document.getElementById('resubmitReason')?.value.trim();
+    
+    if (!reason || reason.length < 10) {
+        alert('⚠️ Resubmission reason must be at least 10 characters');
+        return;
+    }
+    
+    // Request resubmission uses reject endpoint with formatted message
+    const resubmitMessage = `Please resubmit your KYC with the following corrections: ${reason}`;
+    
+    try {
+        const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/reject`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ reason: resubmitMessage })
+        });
+        
+        const data = await response.json();
+
+        if (data.success) {
+            alert('✅ Resubmission request sent to user');
+            closeKYCModal();
+            loadKYCSubmissions();
+        } else {
+            alert('❌ Failed to request resubmission: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Failed to request resubmission:', error);
+        alert('❌ Failed to request resubmission');
+    }
+}
+</script>

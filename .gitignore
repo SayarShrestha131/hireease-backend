@@ -24,3 +24,6 @@ Thumbs.db
 
 # Testing
 coverage/
+
+# Uploads (sensitive documents)
+uploads/

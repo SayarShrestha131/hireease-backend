@@ -38,12 +38,24 @@
     <div id="adminDashboard" class="hidden min-h-screen">
         <!-- Header -->
         <header class="bg-white shadow">
-            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-800">Vehicle Management</h1>
-                <div class="flex items-center space-x-4">
-                    <span id="adminEmail" class="text-gray-600"></span>
-                    <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
-                        Logout
+            <div class="max-w-7xl mx-auto px-4 py-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-2xl font-bold text-gray-800">Admin Panel</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="adminEmail" class="text-gray-600"></span>
+                        <button onclick="logout()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+                <!-- Navigation Tabs -->
+                <div class="flex space-x-4 border-b">
+                    <button onclick="showTab('vehicles')" id="vehiclesTab" class="px-4 py-2 font-semibold border-b-2 border-blue-600 text-blue-600">
+                        Vehicles
+                    </button>
+                    <button onclick="showTab('kyc')" id="kycTab" class="px-4 py-2 font-semibold text-gray-600 hover:text-blue-600">
+                        KYC Verification
+                        <span id="pendingBadge" class="ml-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full hidden">0</span>
                     </button>
                 </div>
             </div>
@@ -51,6 +63,8 @@
 
         <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Vehicles Tab -->
+            <div id="vehiclesContent">
             <!-- Add Vehicle Form -->
             <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
                 <h2 class="text-xl font-bold text-gray-800 mb-6">Add New Vehicle</h2>
@@ -180,7 +194,57 @@
                     <p class="text-gray-500 text-center py-8">Loading vehicles...</p>
                 </div>
             </div>
+            </div>
+
+            <!-- KYC Tab -->
+            <div id="kycContent" class="hidden">
+                <!-- Filter Tabs -->
+                <div class="bg-white rounded-lg shadow-lg p-4 mb-6">
+                    <div class="flex space-x-2">
+                        <button onclick="filterKYC('all')" id="filterAll" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold">
+                            All
+                        </button>
+                        <button onclick="filterKYC('pending')" id="filterPending" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
+                            Pending
+                        </button>
+                        <button onclick="filterKYC('approved')" id="filterApproved" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
+                            Approved
+                        </button>
+                        <button onclick="filterKYC('rejected')" id="filterRejected" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
+                            Rejected
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KYC Submissions List -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6">KYC Submissions</h2>
+                    <div id="kycList" class="space-y-4">
+                        <p class="text-gray-500 text-center py-8">Loading KYC submissions...</p>
+                    </div>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- KYC Detail Modal -->
+    <div id="kycModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">KYC Submission Details</h2>
+                    <button onclick="closeKYCModal()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div id="kycModalContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -382,6 +446,479 @@
 
         function hideMessage(elementId) {
             document.getElementById(elementId).classList.add('hidden');
+        }
+
+        // KYC Management Functions
+        let currentKYCFilter = 'all';
+
+        function showTab(tab) {
+            // Update tab buttons
+            document.getElementById('vehiclesTab').classList.remove('border-blue-600', 'text-blue-600');
+            document.getElementById('vehiclesTab').classList.add('text-gray-600');
+            document.getElementById('kycTab').classList.remove('border-blue-600', 'text-blue-600');
+            document.getElementById('kycTab').classList.add('text-gray-600');
+
+            // Show/hide content
+            if (tab === 'vehicles') {
+                document.getElementById('vehiclesTab').classList.add('border-blue-600', 'text-blue-600');
+                document.getElementById('vehiclesTab').classList.remove('text-gray-600');
+                document.getElementById('vehiclesContent').classList.remove('hidden');
+                document.getElementById('kycContent').classList.add('hidden');
+            } else if (tab === 'kyc') {
+                document.getElementById('kycTab').classList.add('border-blue-600', 'text-blue-600');
+                document.getElementById('kycTab').classList.remove('text-gray-600');
+                document.getElementById('vehiclesContent').classList.add('hidden');
+                document.getElementById('kycContent').classList.remove('hidden');
+                loadKYCSubmissions();
+            }
+        }
+
+        function filterKYC(status) {
+            currentKYCFilter = status;
+            
+            // Update filter buttons
+            ['filterAll', 'filterPending', 'filterApproved', 'filterRejected'].forEach(id => {
+                const btn = document.getElementById(id);
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            
+            document.getElementById(`filter${status.charAt(0).toUpperCase() + status.slice(1)}`).classList.remove('bg-gray-200', 'text-gray-700');
+            document.getElementById(`filter${status.charAt(0).toUpperCase() + status.slice(1)}`).classList.add('bg-blue-600', 'text-white');
+            
+            loadKYCSubmissions();
+        }
+
+        async function loadKYCSubmissions() {
+            try {
+                const url = currentKYCFilter === 'all' 
+                    ? `${API_URL}/kyc/admin/submissions`
+                    : `${API_URL}/kyc/admin/submissions?status=${currentKYCFilter}`;
+                    
+                const response = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    const kycList = document.getElementById('kycList');
+                    
+                    // Update pending badge
+                    const pendingBadge = document.getElementById('pendingBadge');
+                    if (data.data.pendingCount > 0) {
+                        pendingBadge.textContent = data.data.pendingCount;
+                        pendingBadge.classList.remove('hidden');
+                    } else {
+                        pendingBadge.classList.add('hidden');
+                    }
+                    
+                    if (data.data.submissions.length === 0) {
+                        kycList.innerHTML = '<p class="text-gray-500 text-center py-8">No KYC submissions found</p>';
+                        return;
+                    }
+
+                    kycList.innerHTML = data.data.submissions.map(submission => {
+                        const statusColors = {
+                            pending: 'bg-yellow-100 text-yellow-800',
+                            approved: 'bg-green-100 text-green-800',
+                            rejected: 'bg-red-100 text-red-800'
+                        };
+                        
+                        const userName = submission.user ? 
+                            `${submission.user.firstName || ''} ${submission.user.lastName || ''}`.trim() || submission.fullName 
+                            : submission.fullName;
+                        const userEmail = submission.user?.email || 'N/A';
+                        
+                        return `
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition cursor-pointer" onclick="viewKYCDetails('${submission._id}')">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-bold text-gray-800">${userName}</h3>
+                                        <p class="text-sm text-gray-600">${userEmail}</p>
+                                        <p class="text-sm text-gray-600 mt-2">License: ${submission.licenseNumber}</p>
+                                        <p class="text-sm text-gray-600">Submitted: ${new Date(submission.submittedAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColors[submission.status]}">
+                                        ${submission.status.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Failed to load KYC submissions:', error);
+                document.getElementById('kycList').innerHTML = '<p class="text-red-500 text-center py-8">Failed to load submissions</p>';
+            }
+        }
+
+        async function viewKYCDetails(submissionId) {
+            try {
+                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    const submission = data.data.submission;
+                    const userName = submission.user ? 
+                        `${submission.user.firstName || ''} ${submission.user.lastName || ''}`.trim() || submission.fullName 
+                        : submission.fullName;
+                    const userEmail = submission.user?.email || 'N/A';
+                    const userPhone = submission.user?.phoneNumber || 'N/A';
+                    
+                    const statusColors = {
+                        pending: 'bg-yellow-100 text-yellow-800',
+                        approved: 'bg-green-100 text-green-800',
+                        rejected: 'bg-red-100 text-red-800'
+                    };
+                    
+                    let content = `
+                        <div class="space-y-6">
+                            <!-- Status Badge -->
+                            <div class="flex justify-between items-center">
+                                <span class="px-4 py-2 rounded-full text-sm font-semibold ${statusColors[submission.status]}">
+                                    ${submission.status.toUpperCase()}
+                                </span>
+                                <p class="text-sm text-gray-600">Submitted: ${new Date(submission.submittedAt).toLocaleDateString()}</p>
+                            </div>
+                            
+                            <!-- User Information -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3">User Information</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600">Name</p>
+                                        <p class="font-semibold">${userName}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Email</p>
+                                        <p class="font-semibold">N/A</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Phone</p>
+                                        <p class="font-semibold">${userPhone}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- License Details -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3">License Details</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600">License Number</p>
+                                        <p class="font-semibold">${submission.licenseNumber}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Full Name (on license)</p>
+                                        <p class="font-semibold">${submission.fullName}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Date of Birth</p>
+                                        <p class="font-semibold">${new Date(submission.dateOfBirth).toLocaleDateString()}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">License Expiry</p>
+                                        <p class="font-semibold">${new Date(submission.licenseExpiryDate).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- License Images -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3">Document Images</h3>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600 mb-2">License Front</p>
+                                        <img src="${API_URL}/kyc/admin/image/${submission.licenseFrontImage}?token=${authToken}" 
+                                             class="w-full h-48 object-contain bg-white rounded border cursor-pointer hover:opacity-80"
+                                             onclick="window.open('${API_URL}/kyc/admin/image/${submission.licenseFrontImage}?token=${authToken}', '_blank')"
+                                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect fill=\'%23ddd\' width=\'200\' height=\'200\'/%3E%3Ctext fill=\'%23999\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3EImage not found%3C/text%3E%3C/svg%3E';">
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600 mb-2">License Back</p>
+                                        <img src="${API_URL}/kyc/admin/image/${submission.licenseBackImage}?token=${authToken}" 
+                                             class="w-full h-48 object-contain bg-white rounded border cursor-pointer hover:opacity-80"
+                                             onclick="window.open('${API_URL}/kyc/admin/image/${submission.licenseBackImage}?token=${authToken}', '_blank')"
+                                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect fill=\'%23ddd\' width=\'200\' height=\'200\'/%3E%3Ctext fill=\'%23999\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3EImage not found%3C/text%3E%3C/svg%3E';">
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600 mb-2">Selfie</p>
+                                        <img src="${API_URL}/kyc/admin/image/${submission.selfieImage}?token=${authToken}" 
+                                             class="w-full h-48 object-contain bg-white rounded border cursor-pointer hover:opacity-80"
+                                             onclick="window.open('${API_URL}/kyc/admin/image/${submission.selfieImage}?token=${authToken}', '_blank')"
+                                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Crect fill=\'%23ddd\' width=\'200\' height=\'200\'/%3E%3Ctext fill=\'%23999\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\'%3ENo selfie%3C/text%3E%3C/svg%3E';">
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Click images to view full size</p>
+                            </div>
+                    `;
+                    
+                    // Show Face Detection Results
+                    if (submission.faceDetection) {
+                        const fd = submission.faceDetection;
+                        const faceStatusColor = fd.hasFace && fd.isRealFace ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+                        const faceStatusIcon = fd.hasFace && fd.isRealFace ? '✅' : '⚠️';
+                        
+                        content += `
+                            <div class="bg-gray-50 rounded-lg p-4 border-2 ${faceStatusColor}">
+                                <h3 class="font-bold text-gray-800 mb-3">${faceStatusIcon} Face Detection Results</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600">Face Detected</p>
+                                        <p class="font-semibold ${fd.hasFace ? 'text-green-600' : 'text-red-600'}">${fd.hasFace ? 'Yes' : 'No'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Face Count</p>
+                                        <p class="font-semibold ${fd.faceCount === 1 ? 'text-green-600' : 'text-orange-600'}">${fd.faceCount || 0}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Confidence</p>
+                                        <p class="font-semibold">${(fd.confidence * 100).toFixed(1)}%</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Real Face</p>
+                                        <p class="font-semibold ${fd.isRealFace ? 'text-green-600' : 'text-red-600'}">${fd.isRealFace ? 'Yes' : 'No'}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 p-3 bg-white rounded">
+                                    <p class="text-sm text-gray-700"><strong>Message:</strong> ${fd.message}</p>
+                                    <p class="text-xs text-gray-500 mt-1">Verified: ${new Date(fd.verifiedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Show OCR Data
+                    if (submission.ocrData) {
+                        const ocr = submission.ocrData;
+                        content += `
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3">📄 OCR Extracted Data</h3>
+                                
+                                <!-- Front Image OCR -->
+                                ${ocr.frontImage ? `
+                                    <div class="mb-4 p-3 bg-white rounded border">
+                                        <h4 class="font-semibold text-gray-700 mb-2">Front Image (Confidence: ${(ocr.frontImage.confidence * 100).toFixed(1)}%)</h4>
+                                        <div class="grid grid-cols-2 gap-3 text-sm">
+                                            ${ocr.frontImage.licenseNumber ? `
+                                                <div>
+                                                    <p class="text-gray-600">License Number</p>
+                                                    <p class="font-semibold">${ocr.frontImage.licenseNumber}</p>
+                                                </div>
+                                            ` : ''}
+                                            ${ocr.frontImage.fullName ? `
+                                                <div>
+                                                    <p class="text-gray-600">Full Name</p>
+                                                    <p class="font-semibold">${ocr.frontImage.fullName}</p>
+                                                </div>
+                                            ` : ''}
+                                            ${ocr.frontImage.dateOfBirth ? `
+                                                <div>
+                                                    <p class="text-gray-600">Date of Birth</p>
+                                                    <p class="font-semibold">${ocr.frontImage.dateOfBirth}</p>
+                                                </div>
+                                            ` : ''}
+                                            ${ocr.frontImage.expiryDate ? `
+                                                <div>
+                                                    <p class="text-gray-600">Expiry Date</p>
+                                                    <p class="font-semibold">${ocr.frontImage.expiryDate}</p>
+                                                </div>
+                                            ` : ''}
+                                            ${ocr.frontImage.address ? `
+                                                <div class="col-span-2">
+                                                    <p class="text-gray-600">Address</p>
+                                                    <p class="font-semibold">${ocr.frontImage.address}</p>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                        <details class="mt-3">
+                                            <summary class="cursor-pointer text-sm text-blue-600 hover:text-blue-700">View Raw Text</summary>
+                                            <pre class="mt-2 p-2 bg-gray-50 rounded text-xs overflow-auto max-h-32">${ocr.frontImage.rawText}</pre>
+                                        </details>
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Back Image OCR -->
+                                ${ocr.backImage ? `
+                                    <div class="p-3 bg-white rounded border">
+                                        <h4 class="font-semibold text-gray-700 mb-2">Back Image (Confidence: ${(ocr.backImage.confidence * 100).toFixed(1)}%)</h4>
+                                        <div class="text-sm">
+                                            ${ocr.backImage.address ? `
+                                                <div class="mb-2">
+                                                    <p class="text-gray-600">Address</p>
+                                                    <p class="font-semibold">${ocr.backImage.address}</p>
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                        <details class="mt-3">
+                                            <summary class="cursor-pointer text-sm text-blue-600 hover:text-blue-700">View Raw Text</summary>
+                                            <pre class="mt-2 p-2 bg-gray-50 rounded text-xs overflow-auto max-h-32">${ocr.backImage.rawText}</pre>
+                                        </details>
+                                    </div>
+                                ` : ''}
+                                
+                                <p class="text-xs text-gray-500 mt-2">Extracted: ${new Date(ocr.extractedAt).toLocaleString()}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // Show review note if exists
+                    if (submission.reviewNote) {
+                        content += `
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-2">${submission.status === 'rejected' ? 'Rejection Reason' : 'Review Note'}</h3>
+                                <p class="text-gray-700">${submission.reviewNote}</p>
+                                ${submission.reviewedAt ? `<p class="text-sm text-gray-500 mt-2">Reviewed: ${new Date(submission.reviewedAt).toLocaleDateString()}</p>` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    // Show action buttons only for pending submissions
+                    if (submission.status === 'pending') {
+                        content += `
+                            <div class="flex space-x-4 pt-4 border-t">
+                                <button onclick="rejectKYC('${submission._id}')" 
+                                        class="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-semibold">
+                                    Reject
+                                </button>
+                                <button onclick="approveKYC('${submission._id}')" 
+                                        class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold">
+                                    Approve
+                                </button>
+                            </div>
+                        `;
+                    }
+                    
+                    // Show revoke button for approved submissions
+                    if (submission.status === 'approved') {
+                        content += `
+                            <div class="pt-4 border-t">
+                                <button onclick="revokeKYC('${submission._id}')" 
+                                        class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-semibold">
+                                    Revoke Approval
+                                </button>
+                                <p class="text-sm text-gray-600 text-center mt-2">
+                                    Revoke this approved KYC and require user to resubmit
+                                </p>
+                            </div>
+                        `;
+                    }
+                    
+                    content += '</div>';
+                    
+                    document.getElementById('kycModalContent').innerHTML = content;
+                    document.getElementById('kycModal').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to load KYC details:', error);
+                alert('Failed to load KYC details');
+            }
+        }
+
+        function closeKYCModal() {
+            document.getElementById('kycModal').classList.add('hidden');
+        }
+
+        async function approveKYC(submissionId) {
+            const note = prompt('Optional approval note:');
+            
+            try {
+                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/approve`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ reviewNote: note || undefined })
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('KYC submission approved successfully!');
+                    closeKYCModal();
+                    loadKYCSubmissions();
+                } else {
+                    alert('Failed to approve: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Failed to approve KYC:', error);
+                alert('Failed to approve KYC submission');
+            }
+        }
+
+        async function rejectKYC(submissionId) {
+            const reason = prompt('Rejection reason (minimum 10 characters):');
+            
+            if (!reason || reason.trim().length < 10) {
+                alert('Rejection reason must be at least 10 characters');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/reject`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ reason: reason.trim() })
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('KYC submission rejected');
+                    closeKYCModal();
+                    loadKYCSubmissions();
+                } else {
+                    alert('Failed to reject: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Failed to reject KYC:', error);
+                alert('Failed to reject KYC submission');
+            }
+        }
+
+        async function revokeKYC(submissionId) {
+            const reason = prompt('Revocation reason (minimum 10 characters):\n\nThis will revoke the approved KYC and change its status to rejected. The user will need to resubmit their documents.');
+            
+            if (!reason || reason.trim().length < 10) {
+                alert('Revocation reason must be at least 10 characters');
+                return;
+            }
+            
+            if (!confirm('Are you sure you want to revoke this approved KYC? This action will require the user to resubmit.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/revoke`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ reason: reason.trim() })
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Approved KYC has been revoked successfully');
+                    closeKYCModal();
+                    loadKYCSubmissions();
+                } else {
+                    alert('Failed to revoke: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Failed to revoke KYC:', error);
+                alert('Failed to revoke KYC submission');
+            }
         }
     </script>
 </body>
