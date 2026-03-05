@@ -58,6 +58,27 @@ export const updateProfile = async (
       return;
     }
 
+    // Check if user can update profile (7-day restriction)
+    // Note: Notification preferences can be updated anytime
+    const isProfileUpdate = username !== undefined || dateOfBirth !== undefined || contactInfo !== undefined;
+    
+    if (isProfileUpdate) {
+      const updateCheck = user.canUpdateProfile();
+      
+      if (!updateCheck.allowed) {
+        res.status(403).json({
+          success: false,
+          error: `Profile can only be updated once every 7 days. You can update again in ${updateCheck.daysRemaining} day(s).`,
+          data: {
+            daysRemaining: updateCheck.daysRemaining,
+            nextUpdateDate: updateCheck.nextUpdateDate,
+            lastUpdateDate: user.lastProfileUpdate
+          }
+        });
+        return;
+      }
+    }
+
     // Update username if provided
     if (username !== undefined) {
       user.username = username;
@@ -73,9 +94,14 @@ export const updateProfile = async (
       user.contactInfo = { ...user.contactInfo, ...contactInfo };
     }
 
-    // Update notification preferences if provided
+    // Update notification preferences if provided (no restriction)
     if (notificationPreferences !== undefined) {
       user.notificationPreferences = { ...user.notificationPreferences, ...notificationPreferences };
+    }
+
+    // Update lastProfileUpdate timestamp only for profile/contact changes
+    if (isProfileUpdate) {
+      user.lastProfileUpdate = new Date();
     }
 
     await user.save();
@@ -83,6 +109,186 @@ export const updateProfile = async (
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
+      data: {
+        user,
+        nextUpdateAllowed: isProfileUpdate ? new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)) : undefined
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload profile picture
+ * @route POST /api/profile/picture
+ */
+export const uploadProfilePicture = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?._id;
+    const file = req.file;
+
+    console.log('[ProfileController] Upload request from user:', userId);
+    console.log('[ProfileController] File received:', file ? file.filename : 'none');
+
+    if (!file) {
+      res.status(400).json({
+        success: false,
+        error: 'No image file provided',
+      });
+      return;
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+      return;
+    }
+
+    // Delete old profile picture if exists
+    if (user.profilePicture) {
+      const fs = require('fs');
+      const path = require('path');
+      const oldImagePath = path.join(__dirname, '../../uploads/profiles', user.profilePicture);
+      console.log('[ProfileController] Deleting old image:', oldImagePath);
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
+        console.log('[ProfileController] Old image deleted');
+      }
+    }
+
+    // Update user's profile picture
+    user.profilePicture = file.filename;
+    await user.save();
+
+    console.log('[ProfileController] Profile picture updated:', file.filename);
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile picture uploaded successfully',
+      data: {
+        user,
+        profilePictureUrl: `/api/profile/picture/${file.filename}`
+      },
+    });
+  } catch (error) {
+    console.error('[ProfileController] Error uploading profile picture:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get profile picture
+ * @route GET /api/profile/picture/:filename
+ */
+export const getProfilePicture = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { filename } = req.params;
+    const path = require('path');
+    const fs = require('fs');
+
+    console.log('[ProfileController] Fetching profile picture:', filename);
+
+    // Validate filename
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      console.log('[ProfileController] Invalid filename:', filename);
+      res.status(400).json({
+        success: false,
+        error: 'Invalid filename',
+      });
+      return;
+    }
+
+    const filePath = path.join(__dirname, '../../uploads/profiles', filename);
+    console.log('[ProfileController] File path:', filePath);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.log('[ProfileController] File not found:', filePath);
+      res.status(404).json({
+        success: false,
+        error: 'Profile picture not found',
+      });
+      return;
+    }
+
+    // Determine content type
+    const ext = path.extname(filename).toLowerCase();
+    const contentTypeMap: { [key: string]: string } = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+    };
+
+    const contentType = contentTypeMap[ext] || 'application/octet-stream';
+    console.log('[ProfileController] Serving image with content type:', contentType);
+
+    // Set headers and stream file
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete profile picture
+ * @route DELETE /api/profile/picture
+ */
+export const deleteProfilePicture = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user?._id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: 'User not found',
+      });
+      return;
+    }
+
+    if (!user.profilePicture) {
+      res.status(404).json({
+        success: false,
+        error: 'No profile picture to delete',
+      });
+      return;
+    }
+
+    // Delete file from filesystem
+    const fs = require('fs');
+    const path = require('path');
+    const imagePath = path.join(__dirname, '../../uploads/profiles', user.profilePicture);
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+    }
+
+    // Remove from user document
+    user.profilePicture = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile picture deleted successfully',
       data: {
         user,
       },

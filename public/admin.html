@@ -85,7 +85,7 @@
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Model *</label>
-                        <input type="text" name="model" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <input type="text" name="vehicleModel" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
                     </div>
                     
                     <div>
@@ -170,6 +170,12 @@
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Features (comma separated)</label>
                         <input type="text" name="features" placeholder="AC, GPS, Bluetooth, etc." class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Image URLs (comma separated)</label>
+                        <input type="text" name="images" placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        <p class="text-xs text-gray-500 mt-1">Enter image URLs separated by commas. You can use Unsplash or other image hosting services.</p>
                     </div>
                     
                     <div class="md:col-span-2">
@@ -309,7 +315,7 @@
             const vehicleData = {
                 name: formData.get('name'),
                 brand: formData.get('brand'),
-                model: formData.get('model'),
+                vehicleModel: formData.get('vehicleModel'),
                 year: parseInt(formData.get('year')),
                 type: formData.get('type'),
                 fuelType: formData.get('fuelType'),
@@ -318,6 +324,7 @@
                 pricePerDay: parseFloat(formData.get('pricePerDay')),
                 description: formData.get('description'),
                 features: formData.get('features') ? formData.get('features').split(',').map(f => f.trim()) : [],
+                images: formData.get('images') ? formData.get('images').split(',').map(img => img.trim()) : [],
                 specifications: {
                     color: formData.get('color'),
                     engine: formData.get('engine'),
@@ -407,7 +414,7 @@
                             <div class="flex justify-between items-start">
                                 <div>
                                     <h3 class="text-lg font-bold text-gray-800">${vehicle.name}</h3>
-                                    <p class="text-sm text-gray-600">${vehicle.brand} ${vehicle.model} (${vehicle.year})</p>
+                                    <p class="text-sm text-gray-600">${vehicle.brand} ${vehicle.vehicleModel} (${vehicle.year})</p>
                                     <p class="text-sm text-gray-600 mt-2">${vehicle.type} • ${vehicle.fuelType} • ${vehicle.transmission}</p>
                                     <p class="text-sm text-gray-600">${vehicle.seats} seats • ${vehicle.availability.location}</p>
                                     <p class="text-xl font-bold text-blue-600 mt-2">Rs. ${vehicle.pricePerDay.toLocaleString()}/day</p>

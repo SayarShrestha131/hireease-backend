@@ -43,6 +43,7 @@ export interface IUser extends Document {
   role: 'user' | 'admin';
   username?: string;
   dateOfBirth?: Date;
+  profilePicture?: string; // Profile picture filename
   contactInfo?: IContactInfo;
   emergencyContacts?: IEmergencyContact[];
   notificationPreferences?: INotificationPreferences;
@@ -52,11 +53,13 @@ export interface IUser extends Document {
   emailVerificationExpires?: Date;
   resetPasswordCode?: string;
   resetPasswordExpires?: Date;
+  lastProfileUpdate?: Date; // Track last profile update for 7-day restriction
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
   generateResetCode(): string;
   generateEmailVerificationCode(): string;
+  canUpdateProfile(): { allowed: boolean; daysRemaining?: number; nextUpdateDate?: Date };
 }
 
 // User schema definition
@@ -86,6 +89,10 @@ const userSchema = new Schema<IUser>(
     },
     dateOfBirth: {
       type: Date,
+      required: false,
+    },
+    profilePicture: {
+      type: String,
       required: false,
     },
     contactInfo: {
@@ -135,6 +142,10 @@ const userSchema = new Schema<IUser>(
       required: false,
     },
     resetPasswordExpires: {
+      type: Date,
+      required: false,
+    },
+    lastProfileUpdate: {
       type: Date,
       required: false,
     },
@@ -210,6 +221,37 @@ userSchema.methods.generateResetCode = function (): string {
 
   // Return the unhashed code to send via email
   return resetCode;
+};
+
+// Instance method to check if user can update profile (7-day restriction)
+userSchema.methods.canUpdateProfile = function (): { 
+  allowed: boolean; 
+  daysRemaining?: number; 
+  nextUpdateDate?: Date 
+} {
+  // If never updated before, allow update
+  if (!this.lastProfileUpdate) {
+    return { allowed: true };
+  }
+
+  const now = new Date();
+  const lastUpdate = new Date(this.lastProfileUpdate);
+  const daysSinceUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Allow update if 7 days have passed
+  if (daysSinceUpdate >= 7) {
+    return { allowed: true };
+  }
+
+  // Calculate days remaining
+  const daysRemaining = 7 - daysSinceUpdate;
+  const nextUpdateDate = new Date(lastUpdate.getTime() + (7 * 24 * 60 * 60 * 1000));
+
+  return {
+    allowed: false,
+    daysRemaining,
+    nextUpdateDate
+  };
 };
 
 // Create and export the User model

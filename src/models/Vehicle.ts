@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface IVehicle extends Document {
   name: string;
   brand: string;
-  model: string;
+  vehicleModel: string;
   year: number;
   type: 'sedan' | 'suv' | 'hatchback' | 'truck' | 'van' | 'sports' | 'electric';
   fuelType: 'petrol' | 'diesel' | 'electric' | 'hybrid';
@@ -39,7 +39,7 @@ const vehicleSchema = new Schema<IVehicle>(
       type: String,
       required: true,
     },
-    model: {
+    vehicleModel: {
       type: String,
       required: true,
     },
@@ -115,7 +115,7 @@ const vehicleSchema = new Schema<IVehicle>(
 );
 
 // Index for search and filtering
-vehicleSchema.index({ name: 'text', brand: 'text', model: 'text', description: 'text' });
+vehicleSchema.index({ name: 'text', brand: 'text', vehicleModel: 'text', description: 'text' });
 vehicleSchema.index({ type: 1, fuelType: 1, transmission: 1 });
 vehicleSchema.index({ pricePerDay: 1 });
 vehicleSchema.index({ 'availability.isAvailable': 1 });

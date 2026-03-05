@@ -6,8 +6,12 @@ import {
   getBookingHistory,
   addEmergencyContact,
   removeEmergencyContact,
+  uploadProfilePicture,
+  getProfilePicture,
+  deleteProfilePicture,
 } from '../controllers/profileController';
 import { authenticate } from '../middleware/auth';
+import { uploadProfilePicture as uploadMiddleware, handleProfileUploadError } from '../middleware/profileUploadMiddleware';
 import { body, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
 
@@ -105,5 +109,32 @@ router.post(
  * @access  Private
  */
 router.delete('/emergency-contacts/:index', authenticate, removeEmergencyContact);
+
+/**
+ * @route   POST /api/profile/picture
+ * @desc    Upload profile picture
+ * @access  Private
+ */
+router.post(
+  '/picture',
+  authenticate,
+  uploadMiddleware.single('profilePicture'),
+  handleProfileUploadError,
+  uploadProfilePicture
+);
+
+/**
+ * @route   GET /api/profile/picture/:filename
+ * @desc    Get profile picture
+ * @access  Public
+ */
+router.get('/picture/:filename', getProfilePicture);
+
+/**
+ * @route   DELETE /api/profile/picture
+ * @desc    Delete profile picture
+ * @access  Private
+ */
+router.delete('/picture', authenticate, deleteProfilePicture);
 
 export default router;
