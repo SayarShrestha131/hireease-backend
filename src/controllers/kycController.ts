@@ -7,6 +7,7 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import { processLicenseImage } from '../services/ocrService';
 import { validateSelfie } from '../services/faceApiService';
+import { verifyKYCData, calculateOverallConfidence } from '../services/kycVerificationService';
 
 /**
  * Submit new KYC application
@@ -19,7 +20,20 @@ export const submitKYC = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { licenseNumber, fullName, dateOfBirth, licenseExpiryDate, previousSubmissionId } = req.body;
+    const { 
+      licenseNumber, 
+      fullName, 
+      fatherName,
+      dateOfBirth, 
+      licenseExpiryDate,
+      licenseIssueDate,
+      issuingAuthority,
+      address,
+      citizenshipNumber,
+      licenseType,
+      phoneNumber,
+      previousSubmissionId 
+    } = req.body;
     const userId = req.user?._id;
 
     // Check if user is authenticated
@@ -60,31 +74,60 @@ export const submitKYC = async (
     // Process OCR on license images
     let ocrData;
     let faceDetectionResult;
+    let dataVerification;
+    let finalStatus: 'pending' | 'auto-approved' = 'pending';
+    let qualityIssues: string[] = [];
 
     try {
       const uploadsDir = path.join(__dirname, '../../uploads/kyc');
       const frontImagePath = path.join(uploadsDir, licenseFrontImage);
 
-      // Extract text from front image
+      // Extract text from front image with quality check
       console.log('[KYC] Extracting text from front image...');
-      const frontOCR = await processLicenseImage(frontImagePath);
-
-      ocrData = {
-        frontImage: frontOCR,
-        extractedAt: new Date(),
-      };
+      const frontResult = await processLicenseImage(frontImagePath);
+      
+      // Check if image quality is good enough
+      if (!frontResult.qualityCheck.isGoodQuality) {
+        qualityIssues.push(...frontResult.qualityCheck.issues);
+        console.log('[KYC] ⚠️ Front image quality issues:', frontResult.qualityCheck.issues);
+        
+        // If quality is too poor, reject immediately
+        if (frontResult.data.confidence < 30) {
+          // Delete uploaded files
+          try {
+            fs.unlinkSync(frontImagePath);
+            if (licenseBackImage) {
+              fs.unlinkSync(path.join(uploadsDir, licenseBackImage));
+            }
+            if (selfieImage) {
+              fs.unlinkSync(path.join(uploadsDir, selfieImage));
+            }
+          } catch (cleanupError) {
+            console.error('[KYC] Error cleaning up files:', cleanupError);
+          }
+          
+          res.status(400).json({
+            success: false,
+            error: 'Image quality is too poor for verification.',
+            details: {
+              issues: frontResult.qualityCheck.issues,
+              recommendation: frontResult.qualityCheck.recommendation,
+            },
+          });
+          return;
+        }
+      }
 
       // Extract text from back image if provided
+      let backResult;
       if (licenseBackImage) {
         console.log('[KYC] Extracting text from back image...');
         const backImagePath = path.join(uploadsDir, licenseBackImage);
-        const backOCR = await processLicenseImage(backImagePath);
+        backResult = await processLicenseImage(backImagePath);
         
-        ocrData.backImage = {
-          rawText: backOCR.rawText,
-          confidence: backOCR.confidence,
-          address: backOCR.address,
-        };
+        if (!backResult.qualityCheck.isGoodQuality) {
+          qualityIssues.push(...backResult.qualityCheck.issues);
+        }
       }
 
       console.log('[KYC] ✅ OCR processing complete');
@@ -124,6 +167,69 @@ export const submitKYC = async (
       };
       
       console.log('[KYC] ✅ Selfie validated successfully');
+
+      // Calculate overall confidence
+      const overallConfidence = calculateOverallConfidence(
+        frontResult.data.confidence,
+        backResult?.data.confidence,
+        selfieValidation.faceDetection.confidence
+      );
+
+      // Build OCR data object
+      ocrData = {
+        frontImage: frontResult.data,
+        ...(backResult && {
+          backImage: {
+            rawText: backResult.data.rawText,
+            confidence: backResult.data.confidence,
+            address: backResult.data.address,
+          },
+        }),
+        extractedAt: new Date(),
+        overallConfidence,
+        qualityCheck: {
+          isGoodQuality: qualityIssues.length === 0,
+          issues: qualityIssues,
+          recommendation: qualityIssues.length > 0 
+            ? 'Some image quality issues detected. Manual review recommended.'
+            : 'Image quality is good.',
+        },
+      };
+
+      // Verify user data against OCR data
+      console.log('[KYC] Verifying user data against OCR...');
+      const verification = verifyKYCData(
+        {
+          licenseNumber,
+          fullName,
+          fatherName,
+          dateOfBirth: new Date(dateOfBirth),
+          licenseExpiryDate: new Date(licenseExpiryDate),
+          address,
+        },
+        frontResult.data,
+        frontResult.data.confidence,
+        selfieValidation.faceDetection.confidence
+      );
+
+      dataVerification = {
+        licenseNumberMatch: verification.licenseNumberMatch,
+        nameMatch: verification.nameMatch,
+        dobMatch: verification.dobMatch,
+        expiryDateMatch: verification.expiryDateMatch,
+        matchScore: verification.matchScore,
+        checkedAt: new Date(),
+      };
+
+      // Determine if auto-approval should happen
+      // Only auto-approve if image quality is good AND verification passes
+      if (verification.shouldAutoApprove && qualityIssues.length === 0) {
+        finalStatus = 'auto-approved';
+        console.log('[KYC] ✅ AUTO-APPROVED:', verification.reason);
+      } else {
+        console.log('[KYC] ⏳ MANUAL REVIEW REQUIRED:', verification.reason || 'Image quality issues detected');
+      }
+
     } catch (error) {
       console.error('[KYC] OCR/Face detection error:', error);
       // Continue with submission even if OCR fails
@@ -174,26 +280,43 @@ export const submitKYC = async (
     // Create new KYC submission
     const kycSubmission = await KYCSubmission.create({
       userId,
-      status: 'pending',
+      status: finalStatus,
       licenseNumber,
       fullName,
+      fatherName,
       dateOfBirth: new Date(dateOfBirth),
       licenseExpiryDate: new Date(licenseExpiryDate),
+      licenseIssueDate: licenseIssueDate ? new Date(licenseIssueDate) : undefined,
+      issuingAuthority,
+      address,
+      citizenshipNumber,
+      licenseType,
+      phoneNumber,
       licenseFrontImage,
       licenseBackImage,
       selfieImage,
       ocrData,
+      dataVerification,
       faceDetection: faceDetectionResult,
       submittedAt: new Date(),
       ...(previousSubmissionId && { previousSubmissionId }),
+      ...(finalStatus === 'auto-approved' && {
+        reviewedAt: new Date(),
+        reviewNote: 'Auto-approved based on high confidence scores and data verification',
+      }),
     });
 
     // Return success response with submission details
+    const message = finalStatus === 'auto-approved'
+      ? 'KYC submission auto-approved! Your verification is complete.'
+      : 'KYC submission successful. Verification typically takes 24-48 hours.';
+
     res.status(201).json({
       success: true,
-      message: 'KYC submission successful. Verification typically takes 24-48 hours.',
+      message,
       data: {
         submission: kycSubmission,
+        autoApproved: finalStatus === 'auto-approved',
       },
     });
   } catch (error) {

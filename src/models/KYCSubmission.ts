@@ -3,32 +3,60 @@ import mongoose, { Document, Schema } from 'mongoose';
 // IKYCSubmission interface defining the structure of a KYC submission document
 export interface IKYCSubmission extends Document {
   userId: mongoose.Types.ObjectId;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'auto-approved';
   
   // License Information (User Entered)
   licenseNumber: string;
   fullName: string;
+  fatherName?: string;
   dateOfBirth: Date;
   licenseExpiryDate: Date;
+  licenseIssueDate?: Date;
+  issuingAuthority?: string;
+  address?: string;
+  citizenshipNumber?: string;
+  licenseType?: string; // e.g., 'A', 'B', 'C', 'A+B'
+  phoneNumber?: string;
   
   // OCR Extracted Data (from license images)
   ocrData?: {
     frontImage: {
       licenseNumber?: string;
       fullName?: string;
+      fatherName?: string;
       dateOfBirth?: string;
       expiryDate?: string;
+      issueDate?: string;
+      issuingAuthority?: string;
       address?: string;
+      citizenshipNumber?: string;
+      licenseType?: string;
       rawText: string;
       confidence: number;
     };
-    backImage: {
+    backImage?: {
       address?: string;
       additionalInfo?: string;
       rawText: string;
       confidence: number;
     };
     extractedAt: Date;
+    overallConfidence?: number; // Average confidence from both images
+    qualityCheck: {
+      isGoodQuality: boolean;
+      issues: string[];
+      recommendation?: string;
+    };
+  };
+  
+  // Data Verification (comparison between user input and OCR)
+  dataVerification?: {
+    licenseNumberMatch: boolean;
+    nameMatch: boolean;
+    dobMatch: boolean;
+    expiryDateMatch: boolean;
+    matchScore: number; // Percentage of fields that match
+    checkedAt: Date;
   };
   
   // Document Images (filenames stored in uploads/kyc/)
@@ -79,7 +107,7 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected'],
+      enum: ['pending', 'approved', 'rejected', 'auto-approved'],
       default: 'pending',
       required: true,
       index: true,
@@ -94,9 +122,24 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
       required: true,
       trim: true,
     },
+    fatherName: {
+      type: String,
+      required: false,
+      trim: true,
+    },
     dateOfBirth: {
       type: Date,
       required: true,
+    },
+    address: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    phoneNumber: {
+      type: String,
+      required: false,
+      trim: true,
     },
     licenseExpiryDate: {
       type: Date,
@@ -107,6 +150,25 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
         },
         message: 'License expiry date must be in the future',
       },
+    },
+    licenseIssueDate: {
+      type: Date,
+      required: false,
+    },
+    issuingAuthority: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    citizenshipNumber: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    licenseType: {
+      type: String,
+      required: false,
+      trim: true,
     },
     licenseFrontImage: {
       type: String,
@@ -121,25 +183,55 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
       required: true, // Now required
     },
     ocrData: {
-      type: {
-        frontImage: {
+      frontImage: {
+        type: {
           licenseNumber: String,
           fullName: String,
+          fatherName: String,
           dateOfBirth: String,
           expiryDate: String,
+          issueDate: String,
+          issuingAuthority: String,
           address: String,
+          citizenshipNumber: String,
+          licenseType: String,
           rawText: String,
           confidence: Number,
         },
-        backImage: {
+        _id: false,
+      },
+      backImage: {
+        type: {
           address: String,
           additionalInfo: String,
           rawText: String,
           confidence: Number,
         },
-        extractedAt: Date,
+        _id: false,
+      },
+      extractedAt: Date,
+      overallConfidence: Number,
+      qualityCheck: {
+        type: {
+          isGoodQuality: Boolean,
+          issues: [String],
+          recommendation: String,
+        },
+        _id: false,
+      },
+      _id: false,
+    },
+    dataVerification: {
+      type: {
+        licenseNumberMatch: Boolean,
+        nameMatch: Boolean,
+        dobMatch: Boolean,
+        expiryDateMatch: Boolean,
+        matchScore: Number,
+        checkedAt: Date,
       },
       required: false,
+      _id: false,
     },
     faceDetection: {
       type: {
@@ -151,6 +243,7 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
         verifiedAt: Date,
       },
       required: false,
+      _id: false,
     },
     reviewedBy: {
       type: Schema.Types.ObjectId,
@@ -182,7 +275,7 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
         {
           status: {
             type: String,
-            enum: ['pending', 'approved', 'rejected'],
+            enum: ['pending', 'approved', 'rejected', 'auto-approved'],
             required: true,
           },
           changedBy: {
@@ -198,6 +291,7 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
             type: String,
             required: false,
           },
+          _id: false,
         },
       ],
       required: false,
@@ -208,10 +302,47 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
     timestamps: true,
     toJSON: {
       virtuals: true,
+      versionKey: false,
       transform: function (doc, ret: any) {
         // Add virtual fields for image URLs
         ret.licenseFrontImageUrl = `/api/kyc/admin/image/${ret.licenseFrontImage}`;
         ret.licenseBackImageUrl = `/api/kyc/admin/image/${ret.licenseBackImage}`;
+        
+        // Remove _id from nested objects to prevent serialization issues
+        if (ret.ocrData) {
+          delete ret.ocrData._id;
+          delete ret.ocrData.id;
+          if (ret.ocrData.frontImage) {
+            delete ret.ocrData.frontImage._id;
+            delete ret.ocrData.frontImage.id;
+          }
+          if (ret.ocrData.backImage) {
+            delete ret.ocrData.backImage._id;
+            delete ret.ocrData.backImage.id;
+          }
+          if (ret.ocrData.qualityCheck) {
+            delete ret.ocrData.qualityCheck._id;
+            delete ret.ocrData.qualityCheck.id;
+          }
+        }
+        
+        if (ret.dataVerification) {
+          delete ret.dataVerification._id;
+          delete ret.dataVerification.id;
+        }
+        
+        if (ret.faceDetection) {
+          delete ret.faceDetection._id;
+          delete ret.faceDetection.id;
+        }
+        
+        if (ret.statusHistory && Array.isArray(ret.statusHistory)) {
+          ret.statusHistory = ret.statusHistory.map((item: any) => {
+            const { _id, id, ...rest } = item;
+            return rest;
+          });
+        }
+        
         return ret;
       },
     },
