@@ -2,6 +2,12 @@
  * KYC Verification Service
  * Compares user-entered data with OCR-extracted data
  * Implements auto-verification logic based on confidence scores
+ * 
+ * Auto-Approval Criteria:
+ * - OCR confidence >= 80%
+ * - Face confidence >= 70%
+ * - Data match score >= 75% (at least 3 out of 4 critical fields match)
+ * - No quality issues
  */
 
 interface OCRData {
@@ -11,6 +17,12 @@ interface OCRData {
   dateOfBirth?: string;
   expiryDate?: string;
   address?: string;
+  issuedBy?: string;
+  licenseOffice?: string;
+  contactNumber?: string;
+  citizenshipNumber?: string;
+  licenseType?: string;
+  issueDate?: string;
 }
 
 interface UserData {
@@ -20,6 +32,9 @@ interface UserData {
   dateOfBirth: Date;
   licenseExpiryDate: Date;
   address?: string;
+  issuedBy?: string;
+  licenseOffice?: string;
+  contactNumber?: string;
 }
 
 interface VerificationResult {
@@ -27,9 +42,21 @@ interface VerificationResult {
   nameMatch: boolean;
   dobMatch: boolean;
   expiryDateMatch: boolean;
+  fatherNameMatch: boolean;
+  issuedByMatch: boolean;
+  licenseOfficeMatch: boolean;
   matchScore: number;
   shouldAutoApprove: boolean;
   reason?: string;
+  fieldMatchScores: {
+    licenseNumber?: number;
+    fullName?: number;
+    fatherName?: number;
+    dateOfBirth?: number;
+    expiryDate?: number;
+    issuedBy?: number;
+    licenseOffice?: number;
+  };
 }
 
 /**
@@ -131,6 +158,7 @@ function compareDates(date1: Date, date2Str: string | undefined): boolean {
 
 /**
  * Verify user data against OCR extracted data
+ * Returns match scores as percentages (0-100) for each field
  */
 export function verifyKYCData(
   userData: UserData,
@@ -139,77 +167,122 @@ export function verifyKYCData(
   faceConfidence: number
 ): VerificationResult {
   console.log('[KYC Verification] Starting data verification...');
-  
-  const checks = {
-    licenseNumberMatch: false,
-    nameMatch: false,
-    dobMatch: false,
-    expiryDateMatch: false,
-  };
-  
-  // Check 1: License Number
+
+  const fieldMatchScores: VerificationResult['fieldMatchScores'] = {};
+
+  // Check 1: License Number (calculate similarity percentage)
+  let licenseNumberMatch = false;
   if (ocrData.licenseNumber) {
     const similarity = calculateStringSimilarity(userData.licenseNumber, ocrData.licenseNumber);
-    checks.licenseNumberMatch = similarity >= 80;
+    licenseNumberMatch = similarity >= 80; // Consider match if >= 80% similar
+    fieldMatchScores['licenseNumber'] = similarity;
     console.log(`[KYC Verification] License Number: ${similarity}% match`);
   }
-  
+
   // Check 2: Full Name
+  let nameMatch = false;
   if (ocrData.fullName) {
     const similarity = calculateStringSimilarity(userData.fullName, ocrData.fullName);
-    checks.nameMatch = similarity >= 70; // More lenient for names
+    nameMatch = similarity >= 70; // More lenient for names (70%)
+    fieldMatchScores['fullName'] = similarity;
     console.log(`[KYC Verification] Name: ${similarity}% match`);
   }
-  
+
   // Check 3: Date of Birth
+  let dobMatch = false;
   if (ocrData.dateOfBirth) {
-    checks.dobMatch = compareDates(userData.dateOfBirth, ocrData.dateOfBirth);
-    console.log(`[KYC Verification] DOB: ${checks.dobMatch ? 'Match' : 'No match'}`);
+    dobMatch = compareDates(userData.dateOfBirth, ocrData.dateOfBirth);
+    fieldMatchScores['dateOfBirth'] = dobMatch ? 100 : 0;
+    console.log(`[KYC Verification] DOB: ${dobMatch ? 'Match' : 'No match'}`);
   }
-  
+
   // Check 4: Expiry Date
+  let expiryDateMatch = false;
   if (ocrData.expiryDate) {
-    checks.expiryDateMatch = compareDates(userData.licenseExpiryDate, ocrData.expiryDate);
-    console.log(`[KYC Verification] Expiry: ${checks.expiryDateMatch ? 'Match' : 'No match'}`);
+    expiryDateMatch = compareDates(userData.licenseExpiryDate, ocrData.expiryDate);
+    fieldMatchScores['expiryDate'] = expiryDateMatch ? 100 : 0;
+    console.log(`[KYC Verification] Expiry: ${expiryDateMatch ? 'Match' : 'No match'}`);
   }
+
+  // Check 5: Father's Name
+  let fatherNameMatch = false;
+  if (userData.fatherName && ocrData.fatherName) {
+    const similarity = calculateStringSimilarity(userData.fatherName, ocrData.fatherName);
+    fatherNameMatch = similarity >= 70;
+    fieldMatchScores['fatherName'] = similarity;
+    console.log(`[KYC Verification] Father's Name: ${similarity}% match`);
+  }
+
+  // Check 6: Issued By
+  let issuedByMatch = false;
+  if (userData.issuedBy && ocrData.issuedBy) {
+    const similarity = calculateStringSimilarity(userData.issuedBy, ocrData.issuedBy);
+    issuedByMatch = similarity >= 70;
+    fieldMatchScores['issuedBy'] = similarity;
+    console.log(`[KYC Verification] Issued By: ${similarity}% match`);
+  }
+
+  // Check 7: License Office
+  let licenseOfficeMatch = false;
+  if (userData.licenseOffice && ocrData.licenseOffice) {
+    const similarity = calculateStringSimilarity(userData.licenseOffice, ocrData.licenseOffice);
+    licenseOfficeMatch = similarity >= 70;
+    fieldMatchScores['licenseOffice'] = similarity;
+    console.log(`[KYC Verification] License Office: ${similarity}% match`);
+  }
+
+  // Calculate overall match score (percentage of critical fields that match)
+  // Critical fields: license number, name, DOB, expiry date
+  const criticalChecks = [licenseNumberMatch, nameMatch, dobMatch, expiryDateMatch];
+  const criticalPassed = criticalChecks.filter(Boolean).length;
   
-  // Calculate match score (percentage of checks that passed)
-  const checksArray = Object.values(checks);
-  const passedChecks = checksArray.filter(Boolean).length;
-  const matchScore = Math.round((passedChecks / checksArray.length) * 100);
+  // Important fields: father's name, issued by, license office
+  const importantChecks = [fatherNameMatch, issuedByMatch, licenseOfficeMatch].filter(Boolean);
   
+  // Calculate weighted score: critical (70%) + important (30%)
+  const criticalScore = (criticalPassed / criticalChecks.length) * 70;
+  const importantScore = (importantChecks.length / 3) * 30;
+  const matchScore = Math.round(criticalScore + importantScore);
+
   console.log(`[KYC Verification] Match Score: ${matchScore}%`);
   console.log(`[KYC Verification] OCR Confidence: ${ocrConfidence}%`);
   console.log(`[KYC Verification] Face Confidence: ${faceConfidence}%`);
-  
-  // Auto-approval criteria:
+
+  // Auto-approval criteria (80% threshold):
   // 1. OCR confidence >= 80%
   // 2. Face confidence >= 70%
-  // 3. Match score >= 75% (at least 3 out of 4 fields match)
+  // 3. Match score >= 75% (at least 3 out of 4 critical fields match)
   const shouldAutoApprove =
     ocrConfidence >= 80 &&
     faceConfidence >= 70 &&
     matchScore >= 75;
-  
+
   let reason = '';
   if (shouldAutoApprove) {
-    reason = 'Auto-approved: High confidence scores and data match';
+    reason = 'Auto-approved: High confidence scores (≥80% OCR, ≥70% Face, ≥75% Data match) - No admin intervention needed';
   } else if (ocrConfidence < 80) {
-    reason = `OCR confidence too low (${ocrConfidence}%) - Manual review required`;
+    reason = `OCR confidence too low (${ocrConfidence}%, required ≥80%) - Manual review required`;
   } else if (faceConfidence < 70) {
-    reason = `Face confidence too low (${faceConfidence}%) - Manual review required`;
+    reason = `Face confidence too low (${faceConfidence}%, required ≥70%) - Manual review required`;
   } else if (matchScore < 75) {
-    reason = `Data match score too low (${matchScore}%) - Manual review required`;
+    reason = `Data match score too low (${matchScore}%, required ≥75%) - Manual review required`;
   }
-  
-  console.log(`[KYC Verification] Decision: ${shouldAutoApprove ? 'AUTO-APPROVE' : 'MANUAL REVIEW'}`);
+
+  console.log(`[KYC Verification] Decision: ${shouldAutoApprove ? 'AUTO-APPROVE ✓' : 'MANUAL REVIEW ⏳'}`);
   console.log(`[KYC Verification] Reason: ${reason}`);
-  
+
   return {
-    ...checks,
+    licenseNumberMatch,
+    nameMatch,
+    dobMatch,
+    expiryDateMatch,
+    fatherNameMatch,
+    issuedByMatch,
+    licenseOfficeMatch,
     matchScore,
     shouldAutoApprove,
     reason,
+    fieldMatchScores,
   };
 }
 
