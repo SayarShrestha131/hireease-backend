@@ -190,6 +190,10 @@ export const createVehicle = async (
   try {
     const vehicle = await Vehicle.create(req.body);
 
+    // Log vehicle creation for notification system
+    console.log(`🚗 [VehicleController] New vehicle created: ${vehicle.name} (ID: ${vehicle._id})`);
+    console.log(`📅 [VehicleController] Created at: ${vehicle.createdAt}`);
+
     res.status(201).json({
       success: true,
       message: 'Vehicle created successfully',

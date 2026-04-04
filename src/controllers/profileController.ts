@@ -58,26 +58,27 @@ export const updateProfile = async (
       return;
     }
 
-    // Check if user can update profile (7-day restriction)
+    // Check if user can update profile (7-day restriction) - DISABLED for testing
     // Note: Notification preferences can be updated anytime
     const isProfileUpdate = username !== undefined || dateOfBirth !== undefined || contactInfo !== undefined;
     
-    if (isProfileUpdate) {
-      const updateCheck = user.canUpdateProfile();
-      
-      if (!updateCheck.allowed) {
-        res.status(403).json({
-          success: false,
-          error: `Profile can only be updated once every 7 days. You can update again in ${updateCheck.daysRemaining} day(s).`,
-          data: {
-            daysRemaining: updateCheck.daysRemaining,
-            nextUpdateDate: updateCheck.nextUpdateDate,
-            lastUpdateDate: user.lastProfileUpdate
-          }
-        });
-        return;
-      }
-    }
+    // Restriction disabled - always allow profile updates
+    // if (isProfileUpdate) {
+    //   const updateCheck = user.canUpdateProfile();
+    //   
+    //   if (!updateCheck.allowed) {
+    //     res.status(403).json({
+    //       success: false,
+    //       error: `Profile can only be updated once every 7 days. You can update again in ${updateCheck.daysRemaining} day(s).`,
+    //       data: {
+    //         daysRemaining: updateCheck.daysRemaining,
+    //         nextUpdateDate: updateCheck.nextUpdateDate,
+    //         lastUpdateDate: user.lastProfileUpdate
+    //       }
+    //     });
+    //     return;
+    //   }
+    // }
 
     // Update username if provided
     if (username !== undefined) {
@@ -132,10 +133,18 @@ export const uploadProfilePicture = async (
     const userId = req.user?._id;
     const file = req.file;
 
+    console.log('[ProfileController] ========== UPLOAD START ==========');
     console.log('[ProfileController] Upload request from user:', userId);
     console.log('[ProfileController] File received:', file ? file.filename : 'none');
+    console.log('[ProfileController] File details:', file ? {
+      filename: file.filename,
+      path: file.path,
+      size: file.size,
+      mimetype: file.mimetype
+    } : 'NO FILE');
 
     if (!file) {
+      console.log('[ProfileController] ❌ No file provided');
       res.status(400).json({
         success: false,
         error: 'No image file provided',
@@ -145,12 +154,15 @@ export const uploadProfilePicture = async (
 
     const user = await User.findById(userId);
     if (!user) {
+      console.log('[ProfileController] ❌ User not found');
       res.status(404).json({
         success: false,
         error: 'User not found',
       });
       return;
     }
+
+    console.log('[ProfileController] User found:', user.email);
 
     // Delete old profile picture if exists
     if (user.profilePicture) {
@@ -160,15 +172,17 @@ export const uploadProfilePicture = async (
       console.log('[ProfileController] Deleting old image:', oldImagePath);
       if (fs.existsSync(oldImagePath)) {
         fs.unlinkSync(oldImagePath);
-        console.log('[ProfileController] Old image deleted');
+        console.log('[ProfileController] ✅ Old image deleted');
       }
     }
 
     // Update user's profile picture
+    console.log('[ProfileController] Saving new profile picture:', file.filename);
     user.profilePicture = file.filename;
     await user.save();
 
-    console.log('[ProfileController] Profile picture updated:', file.filename);
+    console.log('[ProfileController] ✅ Profile picture updated successfully');
+    console.log('[ProfileController] ========== UPLOAD END ==========');
 
     res.status(200).json({
       success: true,
@@ -179,7 +193,7 @@ export const uploadProfilePicture = async (
       },
     });
   } catch (error) {
-    console.error('[ProfileController] Error uploading profile picture:', error);
+    console.error('[ProfileController] ❌ Error uploading profile picture:', error);
     next(error);
   }
 };

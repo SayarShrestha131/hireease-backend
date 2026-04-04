@@ -119,7 +119,7 @@ export const createBooking = async (
     
     if (!isKYCApproved) {
       const kycStatus = await kycValidatorService.getKYCStatus(userId.toString());
-      console.log(`📋 KYC Status: ${kycStatus.status}`);
+      console.log(`📋 KYC Status: ${kycStatus}`);
       console.log(`❌ Booking rejected - KYC verification required\n`);
       
       res.status(403).json({
