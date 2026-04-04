@@ -297,30 +297,33 @@ function compareDates(date1: string | Date, date2: string | Date): boolean {
         let normalizedDate = dateInput;
         
         // Convert YYYY/MM/DD to YYYY-MM-DD
-        if (dateInput.match(/^\d{4}\/\d{2}\/\d{2}$/)) {
-          normalizedDate = dateInput.replace(/\//g, '-');
+        if (dateInput.match(/^\d{4}\/\d{1,2}\/\d{1,2}$/)) {
+          const parts = dateInput.split('/');
+          const month = parts[1].padStart(2, '0');
+          const day = parts[2].padStart(2, '0');
+          normalizedDate = `${parts[0]}-${month}-${day}`;
         }
         // Convert DD/MM/YYYY to YYYY-MM-DD
-        else if (dateInput.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
-          const parts = dateInput.split('/');
-          normalizedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-        // Convert MM/DD/YYYY to YYYY-MM-DD
         else if (dateInput.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
           const parts = dateInput.split('/');
-          const month = parts[0].padStart(2, '0');
-          const day = parts[1].padStart(2, '0');
+          const month = parts[1].padStart(2, '0');
+          const day = parts[0].padStart(2, '0');
           normalizedDate = `${parts[2]}-${month}-${day}`;
         }
         
-        // Parse the normalized date
-        const parsed = new Date(normalizedDate + 'T00:00:00.000Z');
+        // Parse the normalized date - use local timezone to avoid UTC conversion
+        const parsed = new Date(normalizedDate);
         if (isNaN(parsed.getTime())) {
           throw new Error(`Invalid date: ${dateInput}`);
         }
-        return parsed.toISOString().split('T')[0];
+        
+        // Extract date components in local timezone
+        const year = parsed.getFullYear();
+        const month = String(parsed.getMonth() + 1).padStart(2, '0');
+        const day = String(parsed.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       } else {
-        // For Date objects, extract date components to avoid timezone issues
+        // For Date objects, extract date components in local timezone to avoid UTC issues
         const year = dateInput.getFullYear();
         const month = String(dateInput.getMonth() + 1).padStart(2, '0');
         const day = String(dateInput.getDate()).padStart(2, '0');
@@ -511,32 +514,32 @@ export async function performAutomatedKyc(
     
     if (!licenseNumberMatch) {
       failureReasons.push('License number does not match');
-      detailedComparisons.push(`License Number: Expected "${matchedUser.licenseNumber}", got "${userSubmittedData.licenseNumber}"`);
+      detailedComparisons.push(`License Number: ❌ (${userSubmittedData.licenseNumber} vs ${matchedUser.licenseNumber})`);
     }
     
     if (!nameMatch) {
       failureReasons.push('Full name does not match');
-      detailedComparisons.push(`Full Name: Expected "${matchedUser.fullName}", got "${userSubmittedData.fullName}"`);
+      detailedComparisons.push(`Full Name: ❌ (${userSubmittedData.fullName} vs ${matchedUser.fullName})`);
     }
     
     if (!dobMatch) {
       failureReasons.push('Date of birth does not match');
-      detailedComparisons.push(`Date of Birth: Expected "${matchedUser.dateOfBirth}", got "${userSubmittedData.dateOfBirth}"`);
+      detailedComparisons.push(`Date of Birth: ❌ (${userSubmittedData.dateOfBirth} vs ${matchedUser.dateOfBirth})`);
     }
     
     if (matchedUser.licenseExpiryDate && !expiryDateMatch) {
       failureReasons.push('License expiry date does not match');
-      detailedComparisons.push(`Expiry Date: Expected "${matchedUser.licenseExpiryDate}", got "${userSubmittedData.licenseExpiryDate}"`);
+      detailedComparisons.push(`Expiry Date: ❌ (${userSubmittedData.licenseExpiryDate} vs ${matchedUser.licenseExpiryDate})`);
     }
     
     if (matchedUser.fatherName && !fatherNameMatch) {
       failureReasons.push('Father name does not match');
-      detailedComparisons.push(`Father Name: Expected "${matchedUser.fatherName}", got "${userSubmittedData.fatherName}"`);
+      detailedComparisons.push(`Father Name: ❌ (${userSubmittedData.fatherName} vs ${matchedUser.fatherName})`);
     }
     
     if (matchedUser.email && !emailMatch) {
       failureReasons.push('Email does not match');
-      detailedComparisons.push(`Email: Expected "${matchedUser.email}", got "${userSubmittedData.email}"`);
+      detailedComparisons.push(`Email: ❌ (${userSubmittedData.email} vs ${matchedUser.email})`);
     }
     
     // Calculate match score
@@ -600,20 +603,22 @@ export async function performAutomatedKyc(
       console.log('[Automated KYC] Failure reasons:', failureReasons);
       
       // Create detailed error message
-      let detailedMessage = 'KYC verification failed due to the following issues:\n\n';
+      let detailedMessage = 'KYC verification failed. Here are the specific issues:\n\n';
       
       if (!faceMatchGood) {
-        detailedMessage += `• Face Recognition: Your face similarity is ${faceConfidence}% (minimum 70% required)\n`;
+        detailedMessage += `🔍 Face Recognition: ${faceConfidence}% similarity (minimum 70% required)\n\n`;
       }
       
       if (failureReasons.length > 1 || !failureReasons[0]?.includes('Face similarity')) {
-        detailedMessage += '• Document Data Mismatches:\n';
+        detailedMessage += '📋 Document Data Verification:\n';
         detailedComparisons.forEach(comparison => {
-          detailedMessage += `  - ${comparison}\n`;
+          detailedMessage += `  ${comparison}\n`;
         });
+        detailedMessage += '\n';
       }
       
-      detailedMessage += '\nPlease ensure all your information is correct and matches your registered profile exactly.';
+      detailedMessage += '⚠️  All information must match EXACTLY with your registered profile.\n';
+      detailedMessage += '💡 Double-check your entries and try again.';
       
       return {
         success: false,
