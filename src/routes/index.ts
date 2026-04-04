@@ -6,6 +6,10 @@ import profileRoutes from './profileRoutes';
 import vehicleRoutes from './vehicleRoutes';
 import kycRoutes from './kycRoutes';
 import bookingRoutes from './bookingRoutes';
+import faceVerificationRoutes from './faceVerificationRoutes';
+import faceRecognitionRoutes from './faceRecognitionRoutes';
+import registeredPersonRoutes from './registeredPersonRoutes';
+import identityVerificationRoutes from './identityVerificationRoutes';
 
 const router = Router();
 
@@ -44,6 +48,30 @@ router.use('/kyc', kycRoutes);
  * Accessible at /api/bookings/*
  */
 router.use('/bookings', bookingRoutes);
+
+/**
+ * Mount face verification routes at /face-verification
+ * Accessible at /api/face-verification/*
+ */
+router.use('/face-verification', faceVerificationRoutes);
+
+/**
+ * Mount face recognition routes at /face-recognition
+ * Accessible at /api/face-recognition/*
+ */
+router.use('/face-recognition', faceRecognitionRoutes);
+
+/**
+ * Mount registered persons routes at /registered-persons
+ * Accessible at /api/registered-persons/*
+ */
+router.use('/registered-persons', registeredPersonRoutes);
+
+/**
+ * Mount identity verification routes at /identity
+ * Accessible at /api/identity/*
+ */
+router.use('/identity', identityVerificationRoutes);
 
 /**
  * Health check endpoint

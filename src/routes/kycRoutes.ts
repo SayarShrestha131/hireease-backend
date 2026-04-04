@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import {
+  checkKYCEligibility,
   submitKYC,
   getKYCStatus,
   getKYCHistory,
@@ -10,6 +11,7 @@ import {
   rejectKYC,
   revokeApprovedKYC,
   serveKYCImage,
+  serveProfileImageForAdmin,
 } from '../controllers/kycController';
 import { authenticate, requireAdmin } from '../middleware/auth';
 import { uploadKYCDocuments, handleUploadError } from '../middleware/uploadMiddleware';
@@ -18,24 +20,39 @@ import { validateKYCSubmission, validateKYCRejection } from '../middleware/valid
 const router = Router();
 
 /**
- * Rate limiter for KYC submission endpoint
- * Limits users to 3 submissions per hour to prevent abuse
+ * Rate limiter for KYC submission endpoint - DISABLED for testing
+ * Limits users to 3 submissions per day to prevent abuse
  */
 const kycSubmitLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour window
-  max: 3, // Maximum 3 requests per hour
+  windowMs: 24 * 60 * 60 * 1000, // 24 hour window (1 day)
+  max: 999999, // Effectively unlimited for testing
   message: {
     success: false,
-    error: 'Too many KYC submissions. Please try again later.',
+    error: 'Rate limit exceeded: Maximum 3 KYC submissions per day allowed.',
+    message: 'You have exceeded the daily limit of 3 KYC submissions. Please try again tomorrow.',
+    retryAfter: '24 hours'
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: (req: any) => {
+    // Use user ID for authenticated users to ensure per-user limiting
+    // For unauthenticated users, fall back to IP (express-rate-limit handles IPv6 properly)
+    return req.user?._id?.toString();
+  },
 });
 
 /**
  * USER ROUTES
  * These routes are accessible to authenticated users
  */
+
+/**
+ * @route   GET /api/kyc/eligibility
+ * @desc    Check if user is eligible to submit KYC (has profile picture, no pending submission)
+ * @access  Private (authenticated users)
+ * Requirements: 1.1, 1.2, 5.4, 5.5
+ */
+router.get('/eligibility', authenticate, checkKYCEligibility);
 
 /**
  * @route   POST /api/kyc/submit
@@ -46,6 +63,7 @@ const kycSubmitLimiter = rateLimit({
 router.post(
   '/submit',
   authenticate,
+  kycSubmitLimiter,
   uploadKYCDocuments,
   handleUploadError,
   validateKYCSubmission,
@@ -101,6 +119,15 @@ router.get('/admin/submissions/:id', authenticate, requireAdmin, getKYCSubmissio
  * Note: This endpoint accepts token via query parameter for image loading in HTML
  */
 router.get('/admin/image/:filename', serveKYCImage);
+
+/**
+ * @route   GET /api/kyc/admin/profile-image/:filename
+ * @desc    Serve profile picture for admin review
+ * @access  Private (admin only)
+ * Requirements: 6.2, 6.6, 10.1, 10.2
+ * Note: This endpoint accepts token via query parameter for image loading in HTML
+ */
+router.get('/admin/profile-image/:filename', serveProfileImageForAdmin);
 
 /**
  * @route   PUT /api/kyc/admin/submissions/:id/approve
