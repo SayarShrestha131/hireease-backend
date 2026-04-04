@@ -43,6 +43,7 @@ export interface IUser extends Document {
   role: 'user' | 'admin';
   username?: string;
   dateOfBirth?: Date;
+  fatherName?: string; // Father's name for KYC verification
   profilePicture?: string; // Profile picture filename
   contactInfo?: IContactInfo;
   emergencyContacts?: IEmergencyContact[];
@@ -90,6 +91,11 @@ const userSchema = new Schema<IUser>(
     dateOfBirth: {
       type: Date,
       required: false,
+    },
+    fatherName: {
+      type: String,
+      required: false,
+      trim: true,
     },
     profilePicture: {
       type: String,

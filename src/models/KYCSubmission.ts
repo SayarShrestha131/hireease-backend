@@ -3,20 +3,21 @@ import mongoose, { Document, Schema } from 'mongoose';
 // IKYCSubmission interface defining the structure of a KYC submission document
 export interface IKYCSubmission extends Document {
   userId: mongoose.Types.ObjectId;
-  status: 'pending' | 'approved' | 'rejected' | 'auto-approved';
+  status: 'pending' | 'approved' | 'rejected';
   
   // License Information (User Entered)
   licenseNumber: string;
   fullName: string;
-  fatherName?: string;
+  fatherName: string; // Now required - F/H Name from license
   dateOfBirth: Date;
   licenseExpiryDate: Date;
   licenseIssueDate?: Date;
-  issuingAuthority?: string;
-  address?: string;
+  issuedBy: string; // Required - e.g., "Government of Nepal"
+  licenseOffice: string; // Required - e.g., "Kathmandu Transport Office"
+  fullAddress: string; // Required - complete address
+  contactNumber: string; // Required - phone number
   citizenshipNumber?: string;
   licenseType?: string; // e.g., 'A', 'B', 'C', 'A+B'
-  phoneNumber?: string;
   
   // OCR Extracted Data (from license images)
   ocrData?: {
@@ -33,6 +34,20 @@ export interface IKYCSubmission extends Document {
       licenseType?: string;
       rawText: string;
       confidence: number;
+      fieldConfidence?: {
+        licenseNumber?: number;
+        fullName?: number;
+        fatherName?: number;
+        dateOfBirth?: number;
+        expiryDate?: number;
+        issueDate?: number;
+        issuingAuthority?: number;
+        address?: number;
+        citizenshipNumber?: number;
+        licenseType?: number;
+        contactNumber?: number;
+        bloodGroup?: number;
+      };
     };
     backImage?: {
       address?: string;
@@ -70,7 +85,18 @@ export interface IKYCSubmission extends Document {
     faceCount?: number;
     confidence: number;
     isRealFace?: boolean;
+    isIdentityMatch?: boolean;
+    identityConfidence?: number;
+    identityMessage?: string;
     message: string;
+    verifiedAt: Date;
+  };
+  faceDecision?: {
+    resultCode: 'VERIFIED' | 'UNCERTAIN' | 'REJECTED';
+    matched: boolean;
+    confidence: number;
+    reason: string;
+    reviewedSignal: 'auto-face-match' | 'manual-review-needed';
     verifiedAt: Date;
   };
   
@@ -91,6 +117,9 @@ export interface IKYCSubmission extends Document {
     note?: string;
   }>;
   
+  // Auto-approval flag (to distinguish auto vs manual approval)
+  isAutoApproved?: boolean;
+  
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -107,7 +136,7 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'auto-approved'],
+      enum: ['pending', 'approved', 'rejected'],
       default: 'pending',
       required: true,
       index: true,
@@ -124,21 +153,21 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
     },
     fatherName: {
       type: String,
-      required: false,
+      required: true, // Now required
       trim: true,
     },
     dateOfBirth: {
       type: Date,
       required: true,
     },
-    address: {
+    fullAddress: {
       type: String,
-      required: false,
+      required: true, // Now required
       trim: true,
     },
-    phoneNumber: {
+    contactNumber: {
       type: String,
-      required: false,
+      required: true, // Now required
       trim: true,
     },
     licenseExpiryDate: {
@@ -155,9 +184,14 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
       type: Date,
       required: false,
     },
-    issuingAuthority: {
+    issuedBy: {
       type: String,
-      required: false,
+      required: true, // Now required - e.g., "Government of Nepal"
+      trim: true,
+    },
+    licenseOffice: {
+      type: String,
+      required: true, // Now required - issuing office
       trim: true,
     },
     citizenshipNumber: {
@@ -197,6 +231,23 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
           licenseType: String,
           rawText: String,
           confidence: Number,
+          fieldConfidence: {
+            type: {
+              licenseNumber: Number,
+              fullName: Number,
+              fatherName: Number,
+              dateOfBirth: Number,
+              expiryDate: Number,
+              issueDate: Number,
+              issuingAuthority: Number,
+              address: Number,
+              citizenshipNumber: Number,
+              licenseType: Number,
+              contactNumber: Number,
+              bloodGroup: Number,
+            },
+            _id: false,
+          },
         },
         _id: false,
       },
@@ -239,7 +290,28 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
         faceCount: Number,
         confidence: Number,
         isRealFace: Boolean,
+        isIdentityMatch: Boolean,
+        identityConfidence: Number,
+        identityMessage: String,
         message: String,
+        verifiedAt: Date,
+      },
+      required: false,
+      _id: false,
+    },
+    faceDecision: {
+      type: {
+        resultCode: {
+          type: String,
+          enum: ['VERIFIED', 'UNCERTAIN', 'REJECTED'],
+        },
+        matched: Boolean,
+        confidence: Number,
+        reason: String,
+        reviewedSignal: {
+          type: String,
+          enum: ['auto-face-match', 'manual-review-needed'],
+        },
         verifiedAt: Date,
       },
       required: false,
@@ -270,12 +342,17 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
       ref: 'KYCSubmission',
       required: false,
     },
+    isAutoApproved: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
     statusHistory: {
       type: [
         {
           status: {
             type: String,
-            enum: ['pending', 'approved', 'rejected', 'auto-approved'],
+            enum: ['pending', 'approved', 'rejected'],
             required: true,
           },
           changedBy: {
@@ -336,6 +413,11 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
           delete ret.faceDetection.id;
         }
         
+        if (ret.faceDecision) {
+          delete ret.faceDecision._id;
+          delete ret.faceDecision.id;
+        }
+        
         if (ret.statusHistory && Array.isArray(ret.statusHistory)) {
           ret.statusHistory = ret.statusHistory.map((item: any) => {
             const { _id, id, ...rest } = item;
@@ -351,6 +433,79 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
 
 // Compound index for efficient user status lookup
 kycSubmissionSchema.index({ userId: 1, status: 1 });
+
+// Pre-save middleware to enforce approved KYC immutability
+kycSubmissionSchema.pre('save', async function (next) {
+  // Only apply immutability check if this is an update (not a new document)
+  if (!this.isNew) {
+    // Get the original document from database
+    const original = await KYCSubmission.findById(this._id);
+    
+    if (original && original.status === 'approved') {
+      // Check if any user-entered fields are being modified
+      const userFields = [
+        'licenseNumber', 'fullName', 'fatherName', 'dateOfBirth', 
+        'licenseExpiryDate', 'licenseIssueDate', 'issuedBy', 
+        'licenseOffice', 'fullAddress', 'contactNumber', 
+        'citizenshipNumber', 'licenseType', 'licenseFrontImage', 
+        'licenseBackImage', 'selfieImage'
+      ];
+      
+      const modifiedUserFields = userFields.filter(field => 
+        this.isModified(field) && field !== 'updatedAt'
+      );
+      
+      if (modifiedUserFields.length > 0) {
+        const error = new Error(
+          `Cannot modify approved KYC submission. Modified fields: ${modifiedUserFields.join(', ')}`
+        );
+        error.name = 'ValidationError';
+        return next(error);
+      }
+      
+      // Allow admin-only fields to be modified (for revocation, etc.)
+      // These fields can still be updated: status, reviewedBy, reviewedAt, reviewNote, statusHistory
+    }
+  }
+  
+  next();
+});
+
+// Pre-update middleware to prevent direct updates to approved KYC submissions
+kycSubmissionSchema.pre(['updateOne', 'findOneAndUpdate'], async function (next) {
+  const update = this.getUpdate() as any;
+  
+  if (update && (update.$set || update.$unset || Object.keys(update).some(key => !key.startsWith('$')))) {
+    // Find the document being updated
+    const doc = await this.model.findOne(this.getQuery());
+    
+    if (doc && doc.status === 'approved') {
+      // Check if any user-entered fields are being modified
+      const userFields = [
+        'licenseNumber', 'fullName', 'fatherName', 'dateOfBirth', 
+        'licenseExpiryDate', 'licenseIssueDate', 'issuedBy', 
+        'licenseOffice', 'fullAddress', 'contactNumber', 
+        'citizenshipNumber', 'licenseType', 'licenseFrontImage', 
+        'licenseBackImage', 'selfieImage'
+      ];
+      
+      const updateFields = Object.keys(update.$set || update);
+      const modifiedUserFields = updateFields.filter(field => 
+        userFields.includes(field) && field !== 'updatedAt'
+      );
+      
+      if (modifiedUserFields.length > 0) {
+        const error = new Error(
+          `Cannot modify approved KYC submission. Attempted to modify: ${modifiedUserFields.join(', ')}`
+        );
+        error.name = 'ValidationError';
+        return next(error);
+      }
+    }
+  }
+  
+  next();
+});
 
 // Create and export the KYCSubmission model
 const KYCSubmission = mongoose.model<IKYCSubmission>('KYCSubmission', kycSubmissionSchema);
