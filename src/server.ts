@@ -15,13 +15,36 @@ const app: Application = express();
  * Middleware Configuration
  */
 
-// Enable CORS for all origins in development
-app.use(cors({
-  origin: '*', // Allow all origins in development
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      // Always allow same-host dev origins for admin.html and local tools
+      const devSameOriginAllowlist = new Set([
+        `http://localhost:${config.port}`,
+        `http://127.0.0.1:${config.port}`,
+      ]);
+      if (devSameOriginAllowlist.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      if (config.corsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Parse incoming JSON request bodies
 app.use(express.json());
@@ -31,6 +54,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from public directory
 app.use(express.static('public'));
+
+// Serve uploaded files from uploads directory
+app.use('/uploads', express.static('uploads'));
 
 // Detailed request/response logging middleware
 app.use(requestLogger);
