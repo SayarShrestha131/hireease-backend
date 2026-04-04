@@ -8,6 +8,7 @@ import sharp from 'sharp';
 
 export interface FaceDetectionResult {
   hasFace: boolean;
+  faceCount?: number;
   confidence: number;
   message: string;
 }
