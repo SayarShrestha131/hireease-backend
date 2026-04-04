@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYC Data Comparison - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .field-match {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border: 2px solid #10b981;
+        }
+        
+        .field-mismatch {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 2px solid #ef4444;
+        }
+        
+        .field-partial {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+        }
+        
+        .field-missing {
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            border: 2px solid #9ca3af;
+        }
+        
+        .confidence-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .confidence-high { 
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+        
+        .confidence-medium { 
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+        
+        .confidence-low { 
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+        
+        .match-score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .match-score-high {
+            background: conic-gradient(from 0deg, #10b981, #059669, #10b981);
+        }
+        
+        .match-score-medium {
+            background: conic-gradient(from 0deg, #f59e0b, #d97706, #f59e0b);
+        }
+        
+        .match-score-low {
+            background: conic-gradient(from 0deg, #ef4444, #dc2626, #ef4444);
+        }
+        
+        .comparison-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .comparison-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .field-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+        }
+        
+        .data-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">KYC Data Comparison</h1>
+                    <p class="text-gray-600 mt-1">Side-by-side comparison of user-entered and OCR-extracted data</p>
+                </div>
+                <button onclick="goBack()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+                    ← Back to Admin Panel
+                </button>
+            </div>
+        </div>
+
+        <!-- Overall Match Score -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                Data Verification Match Score
+            </h2>
+            
+            <div class="flex items-center justify-center space-x-8">
+                <div id="matchScoreCircle" class="match-score-circle match-score-medium">
+                    <span id="matchScoreValue">--</span>
+                </div>
+                <div class="flex-1">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="font-medium text-gray-700">Overall Match Score</span>
+                            <span id="matchScorePercent" class="font-bold text-gray-800">--%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div id="matchScoreBar" class="confidence-bar confidence-medium h-full rounded-full" style="width: 0%"></div>
+                        </div>
+                        <div id="matchScoreDescription" class="text-sm text-gray-600">
+                            Calculating match score...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Field-by-Field Comparison -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Field-by-Field Data Comparison
+            </h2>
+            
+            <div id="fieldComparisonGrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                <!-- Field comparison cards will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- OCR Confidence Details -->
+        <div class="data-section bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                OCR Extraction Confidence
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Overall OCR Confidence -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">Overall OCR Confidence</h3>
+                    <div class="flex items-center space-x-4">
+                        <div id="ocrOverallValue" class="text-3xl font-bold text-gray-800">--%</div>
+                        <div class="flex-1">
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="ocrOverallBar" class="confidence-bar confidence-medium h-full rounded-full" style="width: 0%"></div>
+                            </div>
+                            <div id="ocrOverallLabel" class="text-sm text-gray-600 mt-1">Extraction Quality</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quality Check Results -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">Quality Assessment</h3>
+                    <div id="qualityCheckResults">
+                        <div class="text-sm text-gray-600">Loading quality assessment...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Raw Data Display -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Raw Submission Data</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">User-Entered Data</h3>
+                    <pre id="userRawData" class="bg-gray-100 p-4 rounded-lg overflow-auto text-xs h-64">Loading...</pre>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">OCR-Extracted Data</h3>
+                    <pre id="ocrRawData" class="bg-gray-100 p-4 rounded-lg overflow-auto text-xs h-64">Loading...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get submission ID from URL query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const submissionId = urlParams.get('id');
+        const API_URL = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api`;
+        const authToken = localStorage.getItem('adminToken');
+
+        let currentSubmission = null;
+
+        if (!submissionId) {
+            document.body.innerHTML = '<div class="text-center mt-20"><h1 class="text-2xl text-red-600">Error: No submission ID provided</h1></div>';
+        } else if (!authToken) {
+            document.body.innerHTML = '<div class="text-center mt-20"><h1 class="text-2xl text-red-600">Error: Not authenticated</h1></div>';
+        } else {
+            loadSubmissionDetails();
+        }
+
+        async function loadSubmissionDetails() {
+            try {
+                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data.submission) {
+                    currentSubmission = data.data.submission;
+                    displayDataComparison(currentSubmission);
+                    displayOCRConfidence(currentSubmission);
+                    displayRawData(currentSubmission);
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to load submission'));
+                }
+            } catch (error) {
+                console.error('Failed to load submission:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function displayDataComparison(submission) {
+            const userData = extractUserData(submission);
+            const ocrData = submission.ocrData?.frontImage || {};
+            const dataVerification = submission.dataVerification;
+            
+            // Display overall match score
+            displayMatchScore(dataVerification);
+            
+            // Display field-by-field comparison
+            displayFieldComparison(userData, ocrData, submission.ocrData?.frontImage?.fieldConfidence || {});
+        }
+
+        function extractUserData(submission) {
+            return {
+                licenseNumber: submission.licenseNumber,
+                fullName: submission.fullName,
+                fatherName: submission.fatherName,
+                dateOfBirth: formatDate(submission.dateOfBirth),
+                expiryDate: formatDate(submission.licenseExpiryDate),
+                issueDate: formatDate(submission.licenseIssueDate),
+                issuingAuthority: submission.issuedBy,
+                address: submission.fullAddress,
+                citizenshipNumber: submission.citizenshipNumber,
+                licenseType: submission.licenseType,
+                contactNumber: submission.contactNumber
+            };
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+        }
+
+        function displayMatchScore(dataVerification) {
+            if (!dataVerification || dataVerification.matchScore === undefined) {
+                document.getElementById('matchScoreValue').textContent = 'N/A';
+                document.getElementById('matchScorePercent').textContent = 'N/A';
+                document.getElementById('matchScoreDescription').textContent = 'Data verification not available - OCR or user data may be missing';
+                
+                // Update circle to show no data state
+                const circle = document.getElementById('matchScoreCircle');
+                circle.className = 'match-score-circle bg-gray-400';
+                return;
+            }
+
+            const matchScore = Math.round(dataVerification.matchScore);
+            document.getElementById('matchScoreValue').textContent = `${matchScore}%`;
+            document.getElementById('matchScorePercent').textContent = `${matchScore}%`;
+            
+            // Update progress bar
+            const bar = document.getElementById('matchScoreBar');
+            bar.style.width = `${matchScore}%`;
+            
+            // Update circle and bar colors based on score
+            const circle = document.getElementById('matchScoreCircle');
+            let scoreClass, barClass, description;
+            
+            if (matchScore >= 80) {
+                scoreClass = 'match-score-high';
+                barClass = 'confidence-high';
+                description = 'Excellent match - High confidence in data accuracy';
+            } else if (matchScore >= 60) {
+                scoreClass = 'match-score-medium';
+                barClass = 'confidence-medium';
+                description = 'Good match - Some discrepancies may need review';
+            } else {
+                scoreClass = 'match-score-low';
+                barClass = 'confidence-low';
+                description = 'Poor match - Significant discrepancies detected';
+            }
+            
+            circle.className = `match-score-circle ${scoreClass}`;
+            bar.className = `confidence-bar ${barClass} h-full rounded-full`;
+            document.getElementById('matchScoreDescription').textContent = description;
+        }
+
+        function displayFieldComparison(userData, ocrData, fieldConfidence) {
+            const container = document.getElementById('fieldComparisonGrid');
+            
+            // Define fields to compare with their display labels
+            const fields = [
+                { key: 'licenseNumber', label: 'License Number', icon: '🆔' },
+                { key: 'fullName', label: 'Full Name', icon: '👤' },
+                { key: 'fatherName', label: 'Father Name', icon: '👨' },
+                { key: 'dateOfBirth', label: 'Date of Birth', icon: '📅' },
+                { key: 'expiryDate', label: 'Expiry Date', icon: '⏰' },
+                { key: 'issueDate', label: 'Issue Date', icon: '📋' },
+                { key: 'issuingAuthority', label: 'Issuing Authority', icon: '🏛️' },
+                { key: 'address', label: 'Address', icon: '🏠' },
+                { key: 'citizenshipNumber', label: 'Citizenship Number', icon: '🆔' },
+                { key: 'licenseType', label: 'License Type', icon: '🚗' },
+                { key: 'contactNumber', label: 'Contact Number', icon: '📞' }
+            ];
+
+            let html = '';
+            let fieldsDisplayed = 0;
+            
+            fields.forEach(field => {
+                const userValue = userData[field.key] || '';
+                const ocrValue = ocrData[field.key] || '';
+                const confidence = fieldConfidence[field.key] || 0;
+                
+                // Skip if both values are empty
+                if (!userValue && !ocrValue) {
+                    return;
+                }
+                
+                fieldsDisplayed++;
+                
+                // Determine match status
+                let matchStatus, matchClass, matchIcon, matchText;
+                if (!userValue && ocrValue) {
+                    matchStatus = 'missing-user';
+                    matchClass = 'field-missing';
+                    matchIcon = '❓';
+                    matchText = 'User data missing';
+                } else if (userValue && !ocrValue) {
+                    matchStatus = 'missing-ocr';
+                    matchClass = 'field-missing';
+                    matchIcon = '❓';
+                    matchText = 'OCR data missing';
+                } else if (normalizeForComparison(userValue) === normalizeForComparison(ocrValue)) {
+                    matchStatus = 'match';
+                    matchClass = 'field-match';
+                    matchIcon = '✅';
+                    matchText = 'Perfect match';
+                } else if (isPartialMatch(userValue, ocrValue)) {
+                    matchStatus = 'partial';
+                    matchClass = 'field-partial';
+                    matchIcon = '⚠️';
+                    matchText = 'Partial match';
+                } else {
+                    matchStatus = 'mismatch';
+                    matchClass = 'field-mismatch';
+                    matchIcon = '❌';
+                    matchText = 'Mismatch detected';
+                }
+                
+                // Get confidence color
+                let confidenceClass, confidenceText;
+                if (confidence >= 85) {
+                    confidenceClass = 'confidence-high';
+                    confidenceText = 'High';
+                } else if (confidence >= 60) {
+                    confidenceClass = 'confidence-medium';
+                    confidenceText = 'Medium';
+                } else {
+                    confidenceClass = 'confidence-low';
+                    confidenceText = 'Low';
+                }
+
+                html += `
+                    <div class="comparison-card ${matchClass} rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <span class="field-icon">${field.icon}</span>
+                                <span class="font-semibold text-gray-800">${field.label}</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-lg">${matchIcon}</span>
+                                <span class="text-xs font-medium px-2 py-1 rounded-full bg-white bg-opacity-70">
+                                    ${matchText}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <!-- User Data -->
+                            <div class="bg-white bg-opacity-50 rounded p-3">
+                                <div class="text-xs font-medium text-gray-600 mb-1">USER ENTERED</div>
+                                <div class="font-mono text-sm text-gray-800">${userValue || '<em class="text-gray-500">Not provided</em>'}</div>
+                            </div>
+                            
+                            <!-- OCR Data -->
+                            <div class="bg-white bg-opacity-50 rounded p-3">
+                                <div class="flex justify-between items-center mb-1">
+                                    <div class="text-xs font-medium text-gray-600">OCR EXTRACTED</div>
+                                    ${ocrValue ? `
+                                        <div class="flex items-center space-x-1">
+                                            <div class="w-12 bg-gray-200 rounded-full h-2">
+                                                <div class="confidence-bar ${confidenceClass} h-full rounded-full" style="width: ${confidence}%"></div>
+                                            </div>
+                                            <span class="text-xs font-medium text-gray-600">${Math.round(confidence)}%</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="font-mono text-sm text-gray-800">${ocrValue || '<em class="text-gray-500">Not extracted</em>'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (fieldsDisplayed === 0) {
+                html = '<div class="col-span-full text-center text-gray-500 py-8">No field data available for comparison</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        function normalizeForComparison(value) {
+            if (!value) return '';
+            return value.toString().toLowerCase().trim().replace(/\s+/g, ' ');
+        }
+
+        function isPartialMatch(value1, value2) {
+            if (!value1 || !value2) return false;
+            
+            const norm1 = normalizeForComparison(value1);
+            const norm2 = normalizeForComparison(value2);
+            
+            // Check if one contains the other (for partial matches)
+            return norm1.includes(norm2) || norm2.includes(norm1);
+        }
+
+        function displayOCRConfidence(submission) {
+            const ocrData = submission.ocrData;
+            
+            if (!ocrData) {
+                document.getElementById('ocrOverallValue').textContent = 'N/A';
+                document.getElementById('ocrOverallLabel').textContent = 'Not Available';
+                document.getElementById('qualityCheckResults').innerHTML = '<div class="text-sm text-gray-600">OCR data not available</div>';
+                return;
+            }
+
+            // Display overall confidence
+            if (ocrData.overallConfidence !== undefined) {
+                const overallConfidence = Math.round(ocrData.overallConfidence);
+                document.getElementById('ocrOverallValue').textContent = `${overallConfidence}%`;
+                
+                const bar = document.getElementById('ocrOverallBar');
+                bar.style.width = `${overallConfidence}%`;
+                
+                // Color coding
+                let barClass, labelText;
+                if (overallConfidence >= 85) {
+                    barClass = 'confidence-high';
+                    labelText = 'High Quality Extraction';
+                } else if (overallConfidence >= 60) {
+                    barClass = 'confidence-medium';
+                    labelText = 'Medium Quality Extraction';
+                } else {
+                    barClass = 'confidence-low';
+                    labelText = 'Low Quality Extraction';
+                }
+                
+                bar.className = `confidence-bar ${barClass} h-full rounded-full`;
+                document.getElementById('ocrOverallLabel').textContent = labelText;
+            }
+
+            // Display quality check results
+            displayQualityCheck(ocrData.qualityCheck);
+        }
+
+        function displayQualityCheck(qualityCheck) {
+            const container = document.getElementById('qualityCheckResults');
+            
+            if (!qualityCheck) {
+                container.innerHTML = '<div class="text-sm text-gray-600">Quality check not available</div>';
+                return;
+            }
+
+            const isGoodQuality = qualityCheck.isGoodQuality;
+            const issues = qualityCheck.issues || [];
+            const recommendation = qualityCheck.recommendation;
+
+            let html = `
+                <div class="flex items-center mb-2">
+                    <span class="text-lg mr-2">${isGoodQuality ? '✅' : '⚠️'}</span>
+                    <span class="font-medium ${isGoodQuality ? 'text-green-700' : 'text-yellow-700'}">
+                        ${isGoodQuality ? 'Good Quality' : 'Quality Issues Detected'}
+                    </span>
+                </div>
+            `;
+
+            if (issues.length > 0) {
+                html += '<div class="text-sm text-gray-600 mb-2"><strong>Issues:</strong></div>';
+                html += '<ul class="text-sm text-gray-600 list-disc list-inside space-y-1">';
+                issues.forEach(issue => {
+                    html += `<li>${issue}</li>`;
+                });
+                html += '</ul>';
+            }
+
+            if (recommendation) {
+                html += `<div class="text-sm text-blue-600 mt-2"><strong>Recommendation:</strong> ${recommendation}</div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function displayRawData(submission) {
+            // Display user-entered data
+            const userData = extractUserData(submission);
+            document.getElementById('userRawData').textContent = JSON.stringify(userData, null, 2);
+            
+            // Display OCR-extracted data
+            const ocrData = submission.ocrData || {};
+            document.getElementById('ocrRawData').textContent = JSON.stringify(ocrData, null, 2);
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+    </script>
+</body>
+</html>

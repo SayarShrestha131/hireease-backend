@@ -57,6 +57,9 @@
                         KYC Verification
                         <span id="pendingBadge" class="ml-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full hidden">0</span>
                     </button>
+                    <button onclick="showTab('faceRecognition')" id="faceRecognitionTab" class="px-4 py-2 font-semibold text-gray-600 hover:text-blue-600">
+                        Face Recognition
+                    </button>
                 </div>
             </div>
         </header>
@@ -204,29 +207,224 @@
 
             <!-- KYC Tab -->
             <div id="kycContent" class="hidden">
-                <!-- Filter Tabs -->
-                <div class="bg-white rounded-lg shadow-lg p-4 mb-6">
-                    <div class="flex space-x-2">
-                        <button onclick="filterKYC('all')" id="filterAll" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold">
-                            All
-                        </button>
-                        <button onclick="filterKYC('pending')" id="filterPending" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
-                            Pending
-                        </button>
-                        <button onclick="filterKYC('approved')" id="filterApproved" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
-                            Approved
-                        </button>
-                        <button onclick="filterKYC('rejected')" id="filterRejected" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
-                            Rejected
-                        </button>
+                <!-- Enhanced Filter Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Filters & Search</h3>
+                    
+                    <!-- Status Filter Tabs -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                        <div class="flex space-x-2">
+                            <button onclick="filterKYC('all')" id="filterAll" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold">
+                                All
+                            </button>
+                            <button onclick="filterKYC('pending')" id="filterPending" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
+                                Pending
+                            </button>
+                            <button onclick="filterKYC('approved')" id="filterApproved" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
+                                Approved
+                            </button>
+                            <button onclick="filterKYC('rejected')" id="filterRejected" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">
+                                Rejected
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Filters Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        <!-- Face Confidence Filter -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Face Confidence</label>
+                            <select id="faceConfidenceFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="all">All Levels</option>
+                                <option value="low">Low (&lt; 60%)</option>
+                                <option value="medium">Medium (60-85%)</option>
+                                <option value="high">High (&gt; 85%)</option>
+                            </select>
+                        </div>
+
+                        <!-- OCR Confidence Filter -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">OCR Confidence</label>
+                            <select id="ocrConfidenceFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="all">All Levels</option>
+                                <option value="low">Low (&lt; 60%)</option>
+                                <option value="medium">Medium (60-85%)</option>
+                                <option value="high">High (&gt; 85%)</option>
+                            </select>
+                        </div>
+
+                        <!-- Auto-Approval Filter -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Approval Type</label>
+                            <select id="autoApprovalFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="all">All Types</option>
+                                <option value="auto">Auto-Approved</option>
+                                <option value="manual">Manual Review</option>
+                            </select>
+                        </div>
+
+                        <!-- Sort Options -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                            <select id="sortByFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="submittedAt">Submission Date</option>
+                                <option value="faceConfidence">Face Confidence</option>
+                                <option value="ocrConfidence">OCR Confidence</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Search and Sort Order Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Enhanced Search -->
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                            <div class="relative">
+                                <input 
+                                    type="text" 
+                                    id="searchInput" 
+                                    placeholder="Search by name, license number, or citizenship number..." 
+                                    class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sort Order -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Sort Order</label>
+                            <select id="sortOrderFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="desc">Descending</option>
+                                <option value="asc">Ascending</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Apply Filters Button -->
+                    <div class="mt-4 flex justify-between items-center">
+                        <div class="flex space-x-2">
+                            <button onclick="applyFilters()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-semibold">
+                                Apply Filters
+                            </button>
+                            <button onclick="clearFilters()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 font-semibold">
+                                Clear All
+                            </button>
+                        </div>
+                        
+                        <!-- Quick Filter Presets -->
+                        <div class="flex space-x-2">
+                            <button onclick="applyQuickFilter('highConfidence')" class="bg-green-100 text-green-700 px-3 py-1 rounded text-sm hover:bg-green-200">
+                                High Confidence
+                            </button>
+                            <button onclick="applyQuickFilter('lowConfidence')" class="bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200">
+                                Needs Review
+                            </button>
+                            <button onclick="applyQuickFilter('autoApproved')" class="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200">
+                                Auto-Approved
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- KYC Submissions List -->
                 <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-6">KYC Submissions</h2>
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">KYC Submissions</h2>
+                        <div id="resultsInfo" class="text-sm text-gray-600">
+                            <!-- Results count will be displayed here -->
+                        </div>
+                    </div>
                     <div id="kycList" class="space-y-4">
                         <p class="text-gray-500 text-center py-8">Loading KYC submissions...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Face Recognition Tab -->
+            <div id="faceRecognitionContent" class="hidden">
+                <!-- Register Person Form -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6">Register New Person</h2>
+                    
+                    <div id="faceRegisterError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
+                    <div id="faceRegisterSuccess" class="hidden bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4"></div>
+                    
+                    <form id="registerPersonForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                            <input type="text" name="fullName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">License Number *</label>
+                            <input type="text" name="licenseNumber" required class="w-full px-4 py-2 border border-gray-300 rounded-lg" style="text-transform: uppercase;">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input type="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone (10 digits required) *</label>
+                            <input type="tel" name="phone" required pattern="[0-9]{10}" maxlength="10" placeholder="9841234567" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                            <p class="text-xs text-gray-500 mt-1">Enter 10-digit phone number</p>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                            <textarea name="address" rows="2" class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Photo *</label>
+                            <div class="flex space-x-2 mb-2">
+                                <button type="button" onclick="openCamera()" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-semibold">
+                                    📷 Capture from Camera
+                                </button>
+                                <button type="button" onclick="document.getElementById('photoFileInput').click()" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold">
+                                    📁 Choose File
+                                </button>
+                            </div>
+                            <input type="file" id="photoFileInput" name="photo" accept="image/*" class="hidden">
+                            <div id="photoPreview" class="mt-2"></div>
+                            <canvas id="cameraCanvas" class="hidden"></canvas>
+                        </div>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                                Register Person
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Registered Persons List -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">Registered Persons</h2>
+                        <div class="text-sm text-gray-600">
+                            Total: <span id="personsTotal" class="font-semibold">0</span>
+                        </div>
+                    </div>
+                    <div id="personsList" class="space-y-4">
+                        <p class="text-gray-500 text-center py-8">Loading registered persons...</p>
+                    </div>
+                    <!-- Pagination -->
+                    <div id="personsPagination" class="hidden mt-6 flex justify-center items-center space-x-2">
+                        <button onclick="changePersonsPage('prev')" id="prevPageBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Previous
+                        </button>
+                        <span id="pageInfo" class="text-sm text-gray-600">Page 1 of 1</span>
+                        <button onclick="changePersonsPage('next')" id="nextPageBtn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Next
+                        </button>
                     </div>
                 </div>
             </div>
@@ -249,6 +447,104 @@
                 <div id="kycModalContent">
                     <!-- Content will be loaded here -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Person Details Modal -->
+    <div id="personModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Person Details</h2>
+                    <button onclick="closePersonModal()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="personModalContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg max-w-2xl w-full">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Capture Photo</h2>
+                    <button onclick="closeCamera()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <video id="cameraVideo" class="w-full rounded-lg bg-black" autoplay playsinline></video>
+                    <div class="flex space-x-2">
+                        <button onclick="capturePhoto()" class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold">
+                            📸 Capture Photo
+                        </button>
+                        <button onclick="closeCamera()" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 font-semibold">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Action Modal (Approve/Reject/Revoke) -->
+    <div id="actionModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg max-w-lg w-full overflow-hidden shadow-xl">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-start justify-between">
+                <div>
+                    <h3 id="actionModalTitle" class="text-xl font-bold text-gray-800">Action</h3>
+                    <p id="actionModalSubtitle" class="text-sm text-gray-600 mt-1"></p>
+                </div>
+                <button onclick="closeActionModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="px-6 py-5">
+                <div id="actionModalError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4"></div>
+
+                <label id="actionModalLabel" class="block text-sm font-medium text-gray-700 mb-2"></label>
+                <textarea
+                    id="actionModalText"
+                    rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder=""
+                ></textarea>
+
+                <div class="mt-2 flex items-center justify-between">
+                    <p id="actionModalHint" class="text-xs text-gray-500"></p>
+                    <span id="actionModalCounter" class="text-xs text-gray-500"></span>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 justify-end">
+                <button
+                    id="actionModalCancel"
+                    onclick="closeActionModal()"
+                    class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100"
+                >
+                    Cancel
+                </button>
+                <button
+                    id="actionModalConfirm"
+                    onclick="submitActionModal()"
+                    class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700"
+                >
+                    Confirm
+                </button>
             </div>
         </div>
     </div>
@@ -456,7 +752,6 @@
         }
 
         // KYC Management Functions
-        let currentKYCFilter = 'all';
 
         function showTab(tab) {
             // Update tab buttons
@@ -464,6 +759,8 @@
             document.getElementById('vehiclesTab').classList.add('text-gray-600');
             document.getElementById('kycTab').classList.remove('border-blue-600', 'text-blue-600');
             document.getElementById('kycTab').classList.add('text-gray-600');
+            document.getElementById('faceRecognitionTab').classList.remove('border-blue-600', 'text-blue-600');
+            document.getElementById('faceRecognitionTab').classList.add('text-gray-600');
 
             // Show/hide content
             if (tab === 'vehicles') {
@@ -471,17 +768,37 @@
                 document.getElementById('vehiclesTab').classList.remove('text-gray-600');
                 document.getElementById('vehiclesContent').classList.remove('hidden');
                 document.getElementById('kycContent').classList.add('hidden');
+                document.getElementById('faceRecognitionContent').classList.add('hidden');
             } else if (tab === 'kyc') {
                 document.getElementById('kycTab').classList.add('border-blue-600', 'text-blue-600');
                 document.getElementById('kycTab').classList.remove('text-gray-600');
                 document.getElementById('vehiclesContent').classList.add('hidden');
                 document.getElementById('kycContent').classList.remove('hidden');
+                document.getElementById('faceRecognitionContent').classList.add('hidden');
                 loadKYCSubmissions();
+            } else if (tab === 'faceRecognition') {
+                document.getElementById('faceRecognitionTab').classList.add('border-blue-600', 'text-blue-600');
+                document.getElementById('faceRecognitionTab').classList.remove('text-gray-600');
+                document.getElementById('vehiclesContent').classList.add('hidden');
+                document.getElementById('kycContent').classList.add('hidden');
+                document.getElementById('faceRecognitionContent').classList.remove('hidden');
+                loadRegisteredPersons();
             }
         }
 
+        // Enhanced filtering state
+        let currentFilters = {
+            status: 'all',
+            faceConfidence: 'all',
+            ocrConfidence: 'all',
+            autoApproval: 'all',
+            search: '',
+            sortBy: 'submittedAt',
+            sortOrder: 'desc'
+        };
+
         function filterKYC(status) {
-            currentKYCFilter = status;
+            currentFilters.status = status;
             
             // Update filter buttons
             ['filterAll', 'filterPending', 'filterApproved', 'filterRejected'].forEach(id => {
@@ -496,11 +813,107 @@
             loadKYCSubmissions();
         }
 
+        function applyFilters() {
+            // Get all filter values
+            currentFilters.faceConfidence = document.getElementById('faceConfidenceFilter').value;
+            currentFilters.ocrConfidence = document.getElementById('ocrConfidenceFilter').value;
+            currentFilters.autoApproval = document.getElementById('autoApprovalFilter').value;
+            currentFilters.search = document.getElementById('searchInput').value;
+            currentFilters.sortBy = document.getElementById('sortByFilter').value;
+            currentFilters.sortOrder = document.getElementById('sortOrderFilter').value;
+            
+            loadKYCSubmissions();
+        }
+
+        function applyQuickFilter(preset) {
+            clearFilters();
+            
+            switch(preset) {
+                case 'highConfidence':
+                    document.getElementById('faceConfidenceFilter').value = 'high';
+                    document.getElementById('ocrConfidenceFilter').value = 'high';
+                    currentFilters.faceConfidence = 'high';
+                    currentFilters.ocrConfidence = 'high';
+                    break;
+                    
+                case 'lowConfidence':
+                    document.getElementById('faceConfidenceFilter').value = 'low';
+                    document.getElementById('ocrConfidenceFilter').value = 'low';
+                    currentFilters.faceConfidence = 'low';
+                    currentFilters.ocrConfidence = 'low';
+                    break;
+                    
+                case 'autoApproved':
+                    document.getElementById('autoApprovalFilter').value = 'auto';
+                    currentFilters.autoApproval = 'auto';
+                    break;
+            }
+            
+            loadKYCSubmissions();
+        }
+
+        function clearFilters() {
+            // Reset all filters to default
+            currentFilters = {
+                status: 'all',
+                faceConfidence: 'all',
+                ocrConfidence: 'all',
+                autoApproval: 'all',
+                search: '',
+                sortBy: 'submittedAt',
+                sortOrder: 'desc'
+            };
+            
+            // Reset UI elements
+            document.getElementById('faceConfidenceFilter').value = 'all';
+            document.getElementById('ocrConfidenceFilter').value = 'all';
+            document.getElementById('autoApprovalFilter').value = 'all';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('sortByFilter').value = 'submittedAt';
+            document.getElementById('sortOrderFilter').value = 'desc';
+            
+            // Reset status filter buttons
+            filterKYC('all');
+        }
+
+        // Add event listeners for real-time search
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        applyFilters();
+                    }, 500); // Debounce search by 500ms
+                });
+            }
+        });
+
         async function loadKYCSubmissions() {
             try {
-                const url = currentKYCFilter === 'all' 
-                    ? `${API_URL}/kyc/admin/submissions`
-                    : `${API_URL}/kyc/admin/submissions?status=${currentKYCFilter}`;
+                // Build query parameters
+                const params = new URLSearchParams();
+                
+                if (currentFilters.status !== 'all') {
+                    params.append('status', currentFilters.status);
+                }
+                if (currentFilters.faceConfidence !== 'all') {
+                    params.append('faceConfidence', currentFilters.faceConfidence);
+                }
+                if (currentFilters.ocrConfidence !== 'all') {
+                    params.append('ocrConfidence', currentFilters.ocrConfidence);
+                }
+                if (currentFilters.autoApproval !== 'all') {
+                    params.append('autoApproval', currentFilters.autoApproval);
+                }
+                if (currentFilters.search.trim()) {
+                    params.append('search', currentFilters.search.trim());
+                }
+                params.append('sortBy', currentFilters.sortBy);
+                params.append('sortOrder', currentFilters.sortOrder);
+                
+                const url = `${API_URL}/kyc/admin/submissions?${params.toString()}`;
                     
                 const response = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
@@ -510,6 +923,18 @@
 
                 if (data.success) {
                     const kycList = document.getElementById('kycList');
+                    const resultsInfo = document.getElementById('resultsInfo');
+                    
+                    // Update results info
+                    const totalResults = data.data.total || 0;
+                    const currentPage = data.data.page || 1;
+                    const totalPages = data.data.totalPages || 1;
+                    const showing = data.data.submissions.length;
+                    
+                    resultsInfo.innerHTML = `
+                        Showing ${showing} of ${totalResults} submissions
+                        ${totalPages > 1 ? `(Page ${currentPage} of ${totalPages})` : ''}
+                    `;
                     
                     // Update pending badge
                     const pendingBadge = document.getElementById('pendingBadge');
@@ -521,7 +946,7 @@
                     }
                     
                     if (data.data.submissions.length === 0) {
-                        kycList.innerHTML = '<p class="text-gray-500 text-center py-8">No KYC submissions found</p>';
+                        kycList.innerHTML = '<p class="text-gray-500 text-center py-8">No KYC submissions found matching the current filters</p>';
                         return;
                     }
 
@@ -537,14 +962,54 @@
                             : submission.fullName;
                         const userEmail = submission.user?.email || 'N/A';
                         
+                        // Get confidence scores for display
+                        const faceConfidence = submission.faceDetection?.confidence || 0;
+                        const ocrConfidence = submission.ocrData?.overallConfidence || 0;
+                        const isAutoApproved = submission.isAutoApproved || false;
+                        
+                        // Confidence color coding
+                        const getFaceConfidenceColor = (conf) => {
+                            if (conf >= 85) return 'text-green-600';
+                            if (conf >= 60) return 'text-yellow-600';
+                            return 'text-red-600';
+                        };
+                        
+                        const getOcrConfidenceColor = (conf) => {
+                            if (conf >= 85) return 'text-green-600';
+                            if (conf >= 60) return 'text-yellow-600';
+                            return 'text-red-600';
+                        };
+                        
                         return `
                             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition cursor-pointer" onclick="viewKYCDetails('${submission._id}')">
                                 <div class="flex justify-between items-start">
                                     <div class="flex-1">
-                                        <h3 class="text-lg font-bold text-gray-800">${userName}</h3>
+                                        <div class="flex items-center space-x-2 mb-1">
+                                            <h3 class="text-lg font-bold text-gray-800">${userName}</h3>
+                                            ${isAutoApproved ? '<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-semibold">AUTO</span>' : ''}
+                                        </div>
                                         <p class="text-sm text-gray-600">${userEmail}</p>
                                         <p class="text-sm text-gray-600 mt-2">License: ${submission.licenseNumber}</p>
+                                        ${submission.citizenshipNumber ? `<p class="text-sm text-gray-600">Citizenship: ${submission.citizenshipNumber}</p>` : ''}
                                         <p class="text-sm text-gray-600">Submitted: ${new Date(submission.submittedAt).toLocaleDateString()}</p>
+                                        
+                                        <!-- Confidence Scores -->
+                                        <div class="flex space-x-4 mt-2">
+                                            <div class="text-xs">
+                                                <span class="text-gray-500">Face:</span>
+                                                <span class="font-semibold ${getFaceConfidenceColor(faceConfidence)}">${faceConfidence.toFixed(1)}%</span>
+                                                <div class="w-16 h-1 bg-gray-200 rounded-full mt-1">
+                                                    <div class="h-1 rounded-full ${faceConfidence >= 85 ? 'bg-green-500' : faceConfidence >= 60 ? 'bg-yellow-500' : 'bg-red-500'}" style="width: ${faceConfidence}%"></div>
+                                                </div>
+                                            </div>
+                                            <div class="text-xs">
+                                                <span class="text-gray-500">OCR:</span>
+                                                <span class="font-semibold ${getOcrConfidenceColor(ocrConfidence)}">${ocrConfidence.toFixed(1)}%</span>
+                                                <div class="w-16 h-1 bg-gray-200 rounded-full mt-1">
+                                                    <div class="h-1 rounded-full ${ocrConfidence >= 85 ? 'bg-green-500' : ocrConfidence >= 60 ? 'bg-yellow-500' : 'bg-red-500'}" style="width: ${ocrConfidence}%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColors[submission.status]}">
                                         ${submission.status.toUpperCase()}
@@ -602,7 +1067,7 @@
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Email</p>
-                                        <p class="font-semibold">N/A</p>
+                                        <p class="font-semibold">${userEmail}</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Phone</p>
@@ -611,26 +1076,74 @@
                                 </div>
                             </div>
                             
-                            <!-- License Details -->
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <h3 class="font-bold text-gray-800 mb-3">License Details</h3>
+                            <!-- License Details (User-Submitted Data) -->
+                            <div class="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                                <h3 class="font-bold text-blue-900 mb-3">📝 User-Submitted License Details</h3>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p class="text-sm text-gray-600">License Number</p>
-                                        <p class="font-semibold">${submission.licenseNumber}</p>
+                                        <p class="text-sm text-gray-600">License Number (D.L.No)</p>
+                                        <p class="font-semibold text-gray-900">${submission.licenseNumber}</p>
                                     </div>
                                     <div>
-                                        <p class="text-sm text-gray-600">Full Name (on license)</p>
-                                        <p class="font-semibold">${submission.fullName}</p>
+                                        <p class="text-sm text-gray-600">Full Name</p>
+                                        <p class="font-semibold text-gray-900">${submission.fullName}</p>
+                                    </div>
+                                    ${submission.fatherName ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">Father's Name (F/H Name)</p>
+                                            <p class="font-semibold text-gray-900">${submission.fatherName}</p>
+                                        </div>
+                                    ` : ''}
+                                    <div>
+                                        <p class="text-sm text-gray-600">Date of Birth (D.O.B)</p>
+                                        <p class="font-semibold text-gray-900">${new Date(submission.dateOfBirth).toLocaleDateString()}</p>
                                     </div>
                                     <div>
-                                        <p class="text-sm text-gray-600">Date of Birth</p>
-                                        <p class="font-semibold">${new Date(submission.dateOfBirth).toLocaleDateString()}</p>
+                                        <p class="text-sm text-gray-600">License Expiry (D.O.E)</p>
+                                        <p class="font-semibold text-gray-900">${new Date(submission.licenseExpiryDate).toLocaleDateString()}</p>
                                     </div>
-                                    <div>
-                                        <p class="text-sm text-gray-600">License Expiry</p>
-                                        <p class="font-semibold">${new Date(submission.licenseExpiryDate).toLocaleDateString()}</p>
-                                    </div>
+                                    ${submission.licenseIssueDate ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">License Issue Date (D.O.I)</p>
+                                            <p class="font-semibold text-gray-900">${new Date(submission.licenseIssueDate).toLocaleDateString()}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${submission.issuedBy ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">Issued By</p>
+                                            <p class="font-semibold text-gray-900">${submission.issuedBy}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${submission.licenseOffice ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">License Office</p>
+                                            <p class="font-semibold text-gray-900">${submission.licenseOffice}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${submission.fullAddress ? `
+                                        <div class="col-span-2">
+                                            <p class="text-sm text-gray-600">Full Address</p>
+                                            <p class="font-semibold text-gray-900">${submission.fullAddress}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${submission.contactNumber ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">Contact Number (Contact No.)</p>
+                                            <p class="font-semibold text-gray-900">${submission.contactNumber}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${submission.citizenshipNumber ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">Citizenship Number (Citizenship No.)</p>
+                                            <p class="font-semibold text-gray-900">${submission.citizenshipNumber}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${submission.licenseType ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">License Category</p>
+                                            <p class="font-semibold text-gray-900">${submission.licenseType}</p>
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                             
@@ -684,7 +1197,7 @@
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Confidence</p>
-                                        <p class="font-semibold">${(fd.confidence * 100).toFixed(1)}%</p>
+                                        <p class="font-semibold">${fd.confidence.toFixed(1)}%</p>
                                     </div>
                                     <div>
                                         <p class="text-sm text-gray-600">Real Face</p>
@@ -709,7 +1222,7 @@
                                 <!-- Front Image OCR -->
                                 ${ocr.frontImage ? `
                                     <div class="mb-4 p-3 bg-white rounded border">
-                                        <h4 class="font-semibold text-gray-700 mb-2">Front Image (Confidence: ${(ocr.frontImage.confidence * 100).toFixed(1)}%)</h4>
+                                        <h4 class="font-semibold text-gray-700 mb-2">Front Image (Confidence: ${ocr.frontImage.confidence.toFixed(1)}%)</h4>
                                         <div class="grid grid-cols-2 gap-3 text-sm">
                                             ${ocr.frontImage.licenseNumber ? `
                                                 <div>
@@ -752,7 +1265,7 @@
                                 <!-- Back Image OCR -->
                                 ${ocr.backImage ? `
                                     <div class="p-3 bg-white rounded border">
-                                        <h4 class="font-semibold text-gray-700 mb-2">Back Image (Confidence: ${(ocr.backImage.confidence * 100).toFixed(1)}%)</h4>
+                                        <h4 class="font-semibold text-gray-700 mb-2">Back Image (Confidence: ${ocr.backImage.confidence.toFixed(1)}%)</h4>
                                         <div class="text-sm">
                                             ${ocr.backImage.address ? `
                                                 <div class="mb-2">
@@ -769,6 +1282,113 @@
                                 ` : ''}
                                 
                                 <p class="text-xs text-gray-500 mt-2">Extracted: ${new Date(ocr.extractedAt).toLocaleString()}</p>
+                                
+                                <!-- Overall Confidence Score -->
+                                ${ocr.overallConfidence ? `
+                                    <div class="mt-4 p-3 bg-white rounded border">
+                                        <h4 class="font-semibold text-gray-700 mb-2">Overall Confidence Score</h4>
+                                        <div class="flex items-center">
+                                            <div class="flex-1">
+                                                <div class="w-full bg-gray-200 rounded-full h-4">
+                                                    <div class="h-4 rounded-full ${ocr.overallConfidence >= 90 ? 'bg-green-500' : ocr.overallConfidence >= 70 ? 'bg-yellow-500' : 'bg-red-500'}" 
+                                                         style="width: ${ocr.overallConfidence}%"></div>
+                                                </div>
+                                            </div>
+                                            <span class="ml-3 font-bold text-lg ${ocr.overallConfidence >= 90 ? 'text-green-600' : ocr.overallConfidence >= 70 ? 'text-yellow-600' : 'text-red-600'}">
+                                                ${ocr.overallConfidence.toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-2">
+                                            ${ocr.overallConfidence >= 90 ? '✅ Excellent - Auto-approval eligible' : 
+                                              ocr.overallConfidence >= 70 ? '⚠️ Good - Manual review recommended' : 
+                                              '❌ Poor - Manual review required'}
+                                        </p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    // Show Data Verification Comparison
+                    if (submission.dataVerification) {
+                        const dv = submission.dataVerification;
+                        content += `
+                            <div class="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                                <h3 class="font-bold text-blue-900 mb-3">🔍 Data Verification Analysis</h3>
+                                <p class="text-sm text-blue-700 mb-4">Comparison between user-entered data and OCR-extracted data</p>
+                                
+                                <div class="space-y-3">
+                                    <!-- License Number Match -->
+                                    <div class="bg-white rounded p-3 border ${dv.licenseNumberMatch ? 'border-green-300' : 'border-red-300'}">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <span class="text-2xl mr-2">${dv.licenseNumberMatch ? '✅' : '❌'}</span>
+                                                <div>
+                                                    <p class="font-semibold text-gray-800">License Number</p>
+                                                    <p class="text-xs text-gray-600">User: ${submission.licenseNumber}</p>
+                                                    ${submission.ocrData?.frontImage?.licenseNumber ? 
+                                                        `<p class="text-xs text-gray-600">OCR: ${submission.ocrData.frontImage.licenseNumber}</p>` : 
+                                                        '<p class="text-xs text-gray-500">OCR: Not detected</p>'}
+                                                </div>
+                                            </div>
+                                            ${dv.fieldMatchScores?.licenseNumber ? 
+                                                `<span class="font-bold ${dv.fieldMatchScores.licenseNumber >= 80 ? 'text-green-600' : 'text-red-600'}">${dv.fieldMatchScores.licenseNumber}%</span>` : 
+                                                ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Name Match -->
+                                    <div class="bg-white rounded p-3 border ${dv.nameMatch ? 'border-green-300' : 'border-red-300'}">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <span class="text-2xl mr-2">${dv.nameMatch ? '✅' : '❌'}</span>
+                                                <div>
+                                                    <p class="font-semibold text-gray-800">Full Name</p>
+                                                    <p class="text-xs text-gray-600">User: ${submission.fullName}</p>
+                                                    ${submission.ocrData?.frontImage?.fullName ? 
+                                                        `<p class="text-xs text-gray-600">OCR: ${submission.ocrData.frontImage.fullName}</p>` : 
+                                                        '<p class="text-xs text-gray-500">OCR: Not detected</p>'}
+                                                </div>
+                                            </div>
+                                            ${dv.fieldMatchScores?.fullName ? 
+                                                `<span class="font-bold ${dv.fieldMatchScores.fullName >= 70 ? 'text-green-600' : 'text-red-600'}">${dv.fieldMatchScores.fullName}%</span>` : 
+                                                ''}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Overall Match Score -->
+                                    <div class="bg-white rounded p-4 border-2 ${dv.matchScore >= 75 ? 'border-green-400' : 'border-red-400'}">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <h4 class="font-bold text-gray-800">Overall Match Score</h4>
+                                            <span class="text-2xl font-bold ${dv.matchScore >= 75 ? 'text-green-600' : 'text-red-600'}">${dv.matchScore}%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-3">
+                                            <div class="h-3 rounded-full ${dv.matchScore >= 75 ? 'bg-green-500' : 'bg-red-500'}" 
+                                                 style="width: ${dv.matchScore}%"></div>
+                                        </div>
+                                        <p class="text-xs text-gray-600 mt-2">
+                                            ${dv.matchScore >= 75 ? '✅ Data verification passed - High confidence match' : '❌ Data verification failed - Manual review required'}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-xs text-gray-500 mt-3">Checked: ${new Date(dv.checkedAt).toLocaleString()}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // Show Auto-Approval Status
+                    if (submission.isAutoApproved) {
+                        content += `
+                            <div class="bg-green-50 rounded-lg p-4 border-2 border-green-300">
+                                <h3 class="font-bold text-green-900 mb-2">✅ Auto-Approved</h3>
+                                <p class="text-sm text-green-700">This KYC was automatically approved based on high confidence scores:</p>
+                                <ul class="text-sm text-green-700 mt-2 ml-4 list-disc">
+                                    <li>OCR Confidence ≥ 80%</li>
+                                    <li>Face Detection Confidence ≥ 70%</li>
+                                    <li>Data Match Score ≥ 75%</li>
+                                </ul>
+                                <p class="text-xs text-green-600 mt-2">No admin intervention was required.</p>
                             </div>
                         `;
                     }
@@ -784,10 +1404,30 @@
                         `;
                     }
                     
+                    // Add comparison buttons for all submissions
+                    content += `
+                        <div class="pt-4 border-t space-y-3">
+                            <button onclick="openComparisonView('${submission._id}')" 
+                                    class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                Open Side-by-Side Image Comparison
+                            </button>
+                            <button onclick="openDataComparisonView('${submission._id}')" 
+                                    class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-semibold flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                                Open OCR Data Comparison View
+                            </button>
+                        </div>
+                    `;
+                    
                     // Show action buttons only for pending submissions
                     if (submission.status === 'pending') {
                         content += `
-                            <div class="flex space-x-4 pt-4 border-t">
+                            <div class="flex space-x-4">
                                 <button onclick="rejectKYC('${submission._id}')" 
                                         class="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-semibold">
                                     Reject
@@ -830,101 +1470,506 @@
             document.getElementById('kycModal').classList.add('hidden');
         }
 
-        async function approveKYC(submissionId) {
-            const note = prompt('Optional approval note:');
-            
+        // Action modal state
+        const actionState = {
+            type: null, // 'approve' | 'reject' | 'revoke'
+            submissionId: null,
+        };
+
+        function showInlineError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+        }
+
+        function hideInlineError(elementId) {
+            document.getElementById(elementId).classList.add('hidden');
+        }
+
+        function openActionModal(type, submissionId) {
+            actionState.type = type;
+            actionState.submissionId = submissionId;
+
+            const title = document.getElementById('actionModalTitle');
+            const subtitle = document.getElementById('actionModalSubtitle');
+            const label = document.getElementById('actionModalLabel');
+            const text = document.getElementById('actionModalText');
+            const hint = document.getElementById('actionModalHint');
+            const counter = document.getElementById('actionModalCounter');
+            const confirmBtn = document.getElementById('actionModalConfirm');
+
+            hideInlineError('actionModalError');
+            text.value = '';
+
+            const setCounter = () => {
+                const len = (text.value || '').trim().length;
+                counter.textContent = type === 'approve' ? `${len} chars` : `${len}/10 minimum`;
+            };
+            text.oninput = setCounter;
+            setCounter();
+
+            if (type === 'approve') {
+                title.textContent = 'Approve KYC';
+                subtitle.textContent = 'Confirm approval. You can add an optional note (shown to the user).';
+                label.textContent = 'Approval note (optional)';
+                text.placeholder = 'Optional note...';
+                hint.textContent = 'Tip: mention what you verified.';
+                confirmBtn.textContent = 'Approve';
+                confirmBtn.className = 'px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700';
+            } else if (type === 'reject') {
+                title.textContent = 'Reject KYC';
+                subtitle.textContent = 'Reject this submission and provide a clear reason (shown to the user).';
+                label.textContent = 'Rejection reason (required)';
+                text.placeholder = 'Write at least 10 characters...';
+                hint.textContent = 'Example: “Selfie face mismatch / unclear selfie / wrong person.”';
+                confirmBtn.textContent = 'Reject';
+                confirmBtn.className = 'px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700';
+            } else if (type === 'revoke') {
+                title.textContent = 'Revoke Approved KYC';
+                subtitle.textContent = 'This will change status to rejected and require resubmission.';
+                label.textContent = 'Revocation reason (required)';
+                text.placeholder = 'Write at least 10 characters...';
+                hint.textContent = 'Example: “Fraud suspected after review.”';
+                confirmBtn.textContent = 'Revoke';
+                confirmBtn.className = 'px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700';
+            }
+
+            document.getElementById('actionModal').classList.remove('hidden');
+            setTimeout(() => text.focus(), 0);
+        }
+
+        function closeActionModal() {
+            actionState.type = null;
+            actionState.submissionId = null;
+            document.getElementById('actionModal').classList.add('hidden');
+        }
+
+        async function submitActionModal() {
+            const type = actionState.type;
+            const submissionId = actionState.submissionId;
+            const text = document.getElementById('actionModalText').value || '';
+            const value = text.trim();
+
+            hideInlineError('actionModalError');
+
+            if (!type || !submissionId) {
+                showInlineError('actionModalError', 'Invalid action state. Please close and retry.');
+                return;
+            }
+
+            if (type !== 'approve' && value.length < 10) {
+                showInlineError('actionModalError', 'Reason must be at least 10 characters.');
+                return;
+            }
+
+            const url =
+                type === 'approve'
+                    ? `${API_URL}/kyc/admin/submissions/${submissionId}/approve`
+                    : type === 'reject'
+                        ? `${API_URL}/kyc/admin/submissions/${submissionId}/reject`
+                        : `${API_URL}/kyc/admin/submissions/${submissionId}/revoke`;
+
+            const body =
+                type === 'approve'
+                    ? { reviewNote: value || undefined }
+                    : { reason: value };
+
             try {
-                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/approve`, {
+                const response = await fetch(url, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({ reviewNote: note || undefined })
+                    body: JSON.stringify(body)
                 });
-                
+
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('KYC submission approved successfully!');
+                    closeActionModal();
                     closeKYCModal();
                     loadKYCSubmissions();
                 } else {
-                    alert('Failed to approve: ' + (data.error || 'Unknown error'));
+                    const msg = typeof data.error === 'string' ? data.error : (data.error?.message || 'Request failed');
+                    showInlineError('actionModalError', msg);
                 }
             } catch (error) {
-                console.error('Failed to approve KYC:', error);
-                alert('Failed to approve KYC submission');
+                console.error('Admin action failed:', error);
+                showInlineError('actionModalError', 'Network error. Please check if the backend is running.');
             }
         }
 
-        async function rejectKYC(submissionId) {
-            const reason = prompt('Rejection reason (minimum 10 characters):');
-            
-            if (!reason || reason.trim().length < 10) {
-                alert('Rejection reason must be at least 10 characters');
-                return;
-            }
+        // Legacy API for buttons inside KYC modal
+        function approveKYC(submissionId) {
+            openActionModal('approve', submissionId);
+        }
+        function rejectKYC(submissionId) {
+            openActionModal('reject', submissionId);
+        }
+        function revokeKYC(submissionId) {
+            openActionModal('revoke', submissionId);
+        }
+        
+        // Open side-by-side image comparison view
+        function openComparisonView(submissionId) {
+            const comparisonUrl = `admin-kyc-comparison.html?id=${submissionId}`;
+            window.open(comparisonUrl, '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+        }
+
+        // Open OCR data comparison view
+        function openDataComparisonView(submissionId) {
+            const dataComparisonUrl = `admin-kyc-data-comparison.html?id=${submissionId}`;
+            window.open(dataComparisonUrl, '_blank', 'width=1400,height=900,scrollbars=yes,resizable=yes');
+        }
+
+        // Face Recognition Functions
+        document.getElementById('registerPersonForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
             
             try {
-                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/reject`, {
-                    method: 'PUT',
+                const response = await fetch(`${API_URL}/registered-persons/register`, {
+                    method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({ reason: reason.trim() })
+                    body: formData
                 });
-                
+
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('KYC submission rejected');
-                    closeKYCModal();
-                    loadKYCSubmissions();
+                    showSuccess('faceRegisterSuccess', `${data.data.fullName} registered successfully!`);
+                    e.target.reset();
+                    document.getElementById('photoPreview').innerHTML = '';
+                    loadRegisteredPersons();
+                    setTimeout(() => hideMessage('faceRegisterSuccess'), 3000);
                 } else {
-                    alert('Failed to reject: ' + (data.error || 'Unknown error'));
+                    showError('faceRegisterError', data.error || 'Registration failed');
                 }
             } catch (error) {
-                console.error('Failed to reject KYC:', error);
-                alert('Failed to reject KYC submission');
+                console.error('Registration error:', error);
+                showError('faceRegisterError', 'Network error. Please try again.');
+            }
+        });
+
+        // Photo preview for file input
+        document.getElementById('photoFileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('photoPreview').innerHTML = `
+                        <div class="flex items-center space-x-4">
+                            <img src="${e.target.result}" class="w-32 h-32 object-cover rounded-lg border-2 border-blue-300 shadow-md">
+                            <div>
+                                <p class="text-sm font-semibold text-green-600">✓ Photo selected</p>
+                                <p class="text-xs text-gray-500 mt-1">${file.name}</p>
+                                <p class="text-xs text-gray-500">${(file.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Camera functions
+        let cameraStream = null;
+        let capturedPhotoBlob = null;
+
+        async function openCamera() {
+            try {
+                const modal = document.getElementById('cameraModal');
+                const video = document.getElementById('cameraVideo');
+                
+                // Request camera access
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    } 
+                });
+                
+                video.srcObject = cameraStream;
+                modal.classList.remove('hidden');
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Failed to access camera. Please check permissions or use file upload instead.');
             }
         }
 
-        async function revokeKYC(submissionId) {
-            const reason = prompt('Revocation reason (minimum 10 characters):\n\nThis will revoke the approved KYC and change its status to rejected. The user will need to resubmit their documents.');
+        function closeCamera() {
+            const modal = document.getElementById('cameraModal');
+            const video = document.getElementById('cameraVideo');
             
-            if (!reason || reason.trim().length < 10) {
-                alert('Revocation reason must be at least 10 characters');
-                return;
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
             }
             
-            if (!confirm('Are you sure you want to revoke this approved KYC? This action will require the user to resubmit.')) {
-                return;
-            }
+            video.srcObject = null;
+            modal.classList.add('hidden');
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('cameraCanvas');
+            const context = canvas.getContext('2d');
             
+            // Set canvas size to video size
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw video frame to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert canvas to blob
+            canvas.toBlob((blob) => {
+                capturedPhotoBlob = blob;
+                
+                // Create file from blob
+                const file = new File([blob], 'captured-photo.jpg', { type: 'image/jpeg' });
+                
+                // Create a DataTransfer to set the file input
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                document.getElementById('photoFileInput').files = dataTransfer.files;
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('photoPreview').innerHTML = `
+                        <div class="flex items-center space-x-4">
+                            <img src="${e.target.result}" class="w-32 h-32 object-cover rounded-lg border-2 border-green-300 shadow-md">
+                            <div>
+                                <p class="text-sm font-semibold text-green-600">✓ Photo captured from camera</p>
+                                <p class="text-xs text-gray-500 mt-1">captured-photo.jpg</p>
+                            </div>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(blob);
+                
+                // Close camera
+                closeCamera();
+            }, 'image/jpeg', 0.9);
+        }
+
+        // Pagination state
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalPersons = 0;
+        const personsPerPage = 10;
+
+        async function loadRegisteredPersons(page = 1) {
             try {
-                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}/revoke`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ reason: reason.trim() })
+                const response = await fetch(`${API_URL}/registered-persons?page=${page}&limit=${personsPerPage}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
                 });
                 
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('Approved KYC has been revoked successfully');
-                    closeKYCModal();
-                    loadKYCSubmissions();
-                } else {
-                    alert('Failed to revoke: ' + (data.error || 'Unknown error'));
+                    const personsList = document.getElementById('personsList');
+                    const persons = data.data.persons || [];
+                    
+                    // Update pagination info
+                    currentPage = data.data.currentPage || page;
+                    totalPages = data.data.totalPages || 1;
+                    totalPersons = data.data.total || persons.length;
+                    
+                    document.getElementById('personsTotal').textContent = totalPersons;
+                    
+                    if (persons.length === 0) {
+                        personsList.innerHTML = '<p class="text-gray-500 text-center py-8">No persons registered yet</p>';
+                        document.getElementById('personsPagination').classList.add('hidden');
+                        return;
+                    }
+
+                    // Construct base URL for images
+                    const baseUrl = window.location.protocol + '//' + window.location.hostname + ':' + window.location.port;
+
+                    personsList.innerHTML = persons.map(person => {
+                        const imageUrl = `${baseUrl}/uploads/registered-persons/${person.photoPath}`;
+                        return `
+                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                            <div class="flex items-start space-x-4">
+                                <img src="${imageUrl}" 
+                                     class="w-20 h-20 object-cover rounded-full border-2 border-gray-300 cursor-pointer"
+                                     onclick="viewPersonDetails('${person._id}')"
+                                     onerror="console.error('Failed to load image:', this.src); this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'80\\' height=\\'80\\'%3E%3Crect fill=\\'%23ddd\\' width=\\'80\\' height=\\'80\\'/%3E%3Ctext fill=\\'%23999\\' x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\'%3ENo Image%3C/text%3E%3C/svg%3E';">
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-bold text-gray-800">${person.fullName}</h3>
+                                    <p class="text-sm text-gray-600">License: ${person.licenseNumber}</p>
+                                    ${person.phone ? `<p class="text-sm text-gray-600">Phone: ${person.phone}</p>` : ''}
+                                    <p class="text-xs text-gray-500 mt-2">Verifications: ${person.verificationCount || 0}</p>
+                                </div>
+                                <div class="flex flex-col space-y-2">
+                                    <button onclick="viewPersonDetails('${person._id}')" 
+                                            class="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+                                        View Details
+                                    </button>
+                                    <button onclick="deletePerson('${person._id}')" 
+                                            class="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                    
+                    // Update pagination controls
+                    if (totalPages > 1) {
+                        document.getElementById('personsPagination').classList.remove('hidden');
+                        document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+                        document.getElementById('prevPageBtn').disabled = currentPage === 1;
+                        document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
+                    } else {
+                        document.getElementById('personsPagination').classList.add('hidden');
+                    }
                 }
             } catch (error) {
-                console.error('Failed to revoke KYC:', error);
-                alert('Failed to revoke KYC submission');
+                console.error('Failed to load persons:', error);
+                document.getElementById('personsList').innerHTML = '<p class="text-red-500 text-center py-8">Failed to load persons</p>';
+            }
+        }
+
+        function changePersonsPage(direction) {
+            if (direction === 'prev' && currentPage > 1) {
+                loadRegisteredPersons(currentPage - 1);
+            } else if (direction === 'next' && currentPage < totalPages) {
+                loadRegisteredPersons(currentPage + 1);
+            }
+        }
+
+        async function viewPersonDetails(personId) {
+            try {
+                const response = await fetch(`${API_URL}/registered-persons/${personId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    const person = data.data.person;
+                    
+                    // Construct proper image URL
+                    const baseUrl = window.location.protocol + '//' + window.location.hostname + ':' + window.location.port;
+                    const imageUrl = `${baseUrl}/uploads/registered-persons/${person.photoPath}`;
+                    
+                    console.log('[Person Details] Loading image from:', imageUrl);
+                    
+                    const content = `
+                        <div class="space-y-6">
+                            <!-- Photo -->
+                            <div class="flex justify-center">
+                                <img src="${imageUrl}" 
+                                     class="w-48 h-48 object-cover rounded-lg border-4 border-gray-300"
+                                     onerror="console.error('Failed to load image:', this.src); this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'200\\' height=\\'200\\'%3E%3Crect fill=\\'%23ddd\\' width=\\'200\\' height=\\'200\\'/%3E%3Ctext fill=\\'%23999\\' x=\\'50%25\\' y=\\'50%25\\' text-anchor=\\'middle\\' dy=\\'.3em\\'%3ENo Image%3C/text%3E%3C/svg%3E';">
+                            </div>
+                            
+                            <!-- Personal Information -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-bold text-gray-800 mb-3">Personal Information</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600">Full Name</p>
+                                        <p class="font-semibold text-gray-900">${person.fullName}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">License Number</p>
+                                        <p class="font-semibold text-gray-900">${person.licenseNumber}</p>
+                                    </div>
+                                    ${person.email ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">Email</p>
+                                            <p class="font-semibold text-gray-900">${person.email}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${person.phone ? `
+                                        <div>
+                                            <p class="text-sm text-gray-600">Phone</p>
+                                            <p class="font-semibold text-gray-900">${person.phone}</p>
+                                        </div>
+                                    ` : ''}
+                                    ${person.address ? `
+                                        <div class="col-span-2">
+                                            <p class="text-sm text-gray-600">Address</p>
+                                            <p class="font-semibold text-gray-900">${person.address}</p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Verification Statistics -->
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <h3 class="font-bold text-blue-900 mb-3">Verification Statistics</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600">Total Verifications</p>
+                                        <p class="text-2xl font-bold text-blue-600">${person.verificationCount || 0}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Last Verified</p>
+                                        <p class="font-semibold text-gray-900">${person.lastVerifiedAt ? new Date(person.lastVerifiedAt).toLocaleString() : 'Never'}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Registered On</p>
+                                        <p class="font-semibold text-gray-900">${new Date(person.registeredAt).toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600">Status</p>
+                                        <p class="font-semibold ${person.isActive ? 'text-green-600' : 'text-red-600'}">${person.isActive ? 'Active' : 'Inactive'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Actions -->
+                            <div class="pt-4 border-t">
+                                <button onclick="deletePerson('${person._id}'); closePersonModal();" 
+                                        class="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-semibold">
+                                    Delete Person
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.getElementById('personModalContent').innerHTML = content;
+                    document.getElementById('personModal').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to load person details:', error);
+                alert('Failed to load person details');
+            }
+        }
+
+        function closePersonModal() {
+            document.getElementById('personModal').classList.add('hidden');
+        }
+
+        async function deletePerson(personId) {
+            if (!confirm('Are you sure you want to delete this person?')) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/registered-persons/${personId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Person deleted successfully');
+                    loadRegisteredPersons();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
             }
         }
     </script>

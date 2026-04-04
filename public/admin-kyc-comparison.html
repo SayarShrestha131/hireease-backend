@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYC Image Comparison - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+        
+        .zoomable-image {
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+        }
+        
+        .zoomable-image:hover {
+            transform: scale(1.05);
+        }
+        
+        .zoomable-image.zoomed {
+            transform: scale(2);
+            cursor: zoom-out;
+        }
+        
+        .confidence-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .confidence-high { 
+            background: linear-gradient(90deg, #10b981, #059669);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+        
+        .confidence-medium { 
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        }
+        
+        .confidence-low { 
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        }
+        
+        .quality-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .quality-high {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+        }
+        
+        .quality-medium {
+            background: rgba(245, 158, 11, 0.9);
+            color: white;
+        }
+        
+        .quality-low {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+        }
+        
+        .comparison-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 2px solid #e2e8f0;
+        }
+        
+        .face-match-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .zoom-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: zoom-out;
+        }
+        
+        .zoom-overlay img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .zoom-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .zoom-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">KYC Image Comparison</h1>
+                    <p class="text-gray-600 mt-1">Side-by-side verification with zoom functionality</p>
+                </div>
+                <button onclick="goBack()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">
+                    ← Back to Admin Panel
+                </button>
+            </div>
+        </div>
+
+        <!-- Face Comparison Section -->
+        <div class="comparison-section bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                Face Verification Comparison
+            </h2>
+            
+            <!-- Face Confidence Score Display -->
+            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold text-gray-700">Face Match Confidence</h3>
+                    <div class="text-right">
+                        <div id="faceConfidenceValue" class="text-3xl font-bold text-gray-800">--</div>
+                        <div id="faceConfidenceLabel" class="text-sm font-medium text-gray-600">Confidence Level</div>
+                    </div>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-8 overflow-hidden shadow-inner">
+                    <div id="faceConfidenceBar" class="confidence-bar h-full rounded-full flex items-center justify-center text-white font-bold transition-all duration-500" style="width: 0%">
+                        <span id="faceConfidencePercent">0%</span>
+                    </div>
+                </div>
+                <div class="mt-3 p-3 bg-white rounded border">
+                    <p id="faceConfidenceMessage" class="text-sm text-gray-700 font-medium"></p>
+                </div>
+            </div>
+            
+            <!-- Side-by-Side Image Comparison -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+                <!-- Profile Picture -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-700 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Profile Picture (Reference)
+                    </h3>
+                    <div class="image-container relative">
+                        <img id="profileImage" 
+                             class="zoomable-image w-full h-80 object-contain bg-white border-2 border-gray-200 rounded-lg cursor-pointer"
+                             onclick="openZoom(this)"
+                             alt="Profile Picture"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'300\'%3E%3Crect fill=\'%23f3f4f6\' width=\'300\' height=\'300\'/%3E%3Ctext fill=\'%239ca3af\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-size=\'16\'%3ENo Profile Picture%3C/text%3E%3C/svg%3E';">
+                        <div id="profileQuality" class="quality-indicator quality-high">High Quality</div>
+                    </div>
+                    <div class="text-sm text-gray-600 bg-green-50 p-3 rounded border border-green-200">
+                        <div class="font-medium text-green-800">Reference Image</div>
+                        <div>Uploaded to user profile before KYC submission</div>
+                    </div>
+                </div>
+                
+                <!-- Live Selfie -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-700 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Live Selfie (Verification)
+                    </h3>
+                    <div class="image-container relative">
+                        <img id="selfieImage" 
+                             class="zoomable-image w-full h-80 object-contain bg-white border-2 border-gray-200 rounded-lg cursor-pointer"
+                             onclick="openZoom(this)"
+                             alt="Live Selfie"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'300\'%3E%3Crect fill=\'%23f3f4f6\' width=\'300\' height=\'300\'/%3E%3Ctext fill=\'%23999\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-size=\'16\'%3ENo Selfie%3C/text%3E%3C/svg%3E';">
+                        <div id="selfieQuality" class="quality-indicator quality-medium">Medium Quality</div>
+                    </div>
+                    <div class="text-sm text-gray-600 bg-blue-50 p-3 rounded border border-blue-200">
+                        <div class="font-medium text-blue-800">Verification Image</div>
+                        <div>Captured during KYC submission process</div>
+                    </div>
+                </div>
+                
+                <!-- Face Match Indicator (Centered between images) -->
+                <div id="faceMatchIndicator" class="face-match-indicator hidden lg:block">
+                    <div id="matchResult" class="text-center">
+                        <div class="text-2xl mb-1">🔍</div>
+                        <div>Analyzing...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- License Documents Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                License Documents
+            </h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- License Front -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-700">License Front</h3>
+                    <div class="image-container relative">
+                        <img id="licenseFrontImage" 
+                             class="zoomable-image w-full h-64 object-contain bg-white border-2 border-gray-200 rounded-lg cursor-pointer"
+                             onclick="openZoom(this)"
+                             alt="License Front"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect fill=\'%23f3f4f6\' width=\'300\' height=\'200\'/%3E%3Ctext fill=\'%23999\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-size=\'14\'%3ELicense Front%3C/text%3E%3C/svg%3E';">
+                        <div id="licenseFrontQuality" class="quality-indicator quality-high">High Quality</div>
+                    </div>
+                </div>
+                
+                <!-- License Back -->
+                <div class="space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-700">License Back</h3>
+                    <div class="image-container relative">
+                        <img id="licenseBackImage" 
+                             class="zoomable-image w-full h-64 object-contain bg-white border-2 border-gray-200 rounded-lg cursor-pointer"
+                             onclick="openZoom(this)"
+                             alt="License Back"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'200\'%3E%3Crect fill=\'%23f3f4f6\' width=\'300\' height=\'200\'/%3E%3Ctext fill=\'%23999\' x=\'50%25\' y=\'50%25\' text-anchor=\'middle\' dy=\'.3em\' font-size=\'14\'%3ELicense Back%3C/text%3E%3C/svg%3E';">
+                        <div id="licenseBackQuality" class="quality-indicator quality-medium">Medium Quality</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div id="actionButtons" class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Admin Actions</h2>
+            <div class="flex space-x-4">
+                <button id="rejectBtn" onclick="rejectSubmission()" 
+                        class="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-semibold transition">
+                    Reject Submission
+                </button>
+                <button id="approveBtn" onclick="approveSubmission()" 
+                        class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold transition">
+                    Approve Submission
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zoom Overlay -->
+    <div id="zoomOverlay" class="zoom-overlay hidden" onclick="closeZoom()">
+        <div class="zoom-controls">
+            <button class="zoom-btn" onclick="event.stopPropagation(); zoomIn()">+</button>
+            <button class="zoom-btn" onclick="event.stopPropagation(); zoomOut()">-</button>
+            <button class="zoom-btn" onclick="closeZoom()">✕</button>
+        </div>
+        <img id="zoomedImage" src="" alt="Zoomed Image">
+    </div>
+
+    <script>
+        // Get submission ID from URL query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const submissionId = urlParams.get('id');
+        const API_URL = `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api`;
+        const authToken = localStorage.getItem('adminToken');
+
+        let currentSubmission = null;
+        let zoomLevel = 1;
+
+        if (!submissionId) {
+            document.body.innerHTML = '<div class="text-center mt-20"><h1 class="text-2xl text-red-600">Error: No submission ID provided</h1></div>';
+        } else if (!authToken) {
+            document.body.innerHTML = '<div class="text-center mt-20"><h1 class="text-2xl text-red-600">Error: Not authenticated</h1></div>';
+        } else {
+            loadSubmissionDetails();
+        }
+
+        async function loadSubmissionDetails() {
+            try {
+                const response = await fetch(`${API_URL}/kyc/admin/submissions/${submissionId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.data.submission) {
+                    currentSubmission = data.data.submission;
+                    displayImages(currentSubmission);
+                    displayFaceConfidence(currentSubmission);
+                    updateActionButtons(currentSubmission);
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to load submission'));
+                }
+            } catch (error) {
+                console.error('Failed to load submission:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function displayImages(submission) {
+            // Profile Picture
+            if (submission.userId && submission.userId.profilePicture) {
+                const profileImg = document.getElementById('profileImage');
+                profileImg.src = `${API_URL}/kyc/admin/profile-image/${submission.userId.profilePicture}?token=${authToken}`;
+                updateImageQuality('profileQuality', 'high');
+            } else {
+                updateImageQuality('profileQuality', 'none');
+                document.getElementById('profileQuality').textContent = 'No Profile Picture';
+                document.getElementById('profileQuality').className = 'quality-indicator quality-low';
+            }
+
+            // Live Selfie
+            if (submission.selfieImage) {
+                const selfieImg = document.getElementById('selfieImage');
+                selfieImg.src = `${API_URL}/kyc/admin/image/${submission.selfieImage}?token=${authToken}`;
+                updateImageQuality('selfieQuality', getImageQuality(submission.faceDetection));
+            }
+
+            // License Images
+            if (submission.licenseFrontImage) {
+                const frontImg = document.getElementById('licenseFrontImage');
+                frontImg.src = `${API_URL}/kyc/admin/image/${submission.licenseFrontImage}?token=${authToken}`;
+                updateImageQuality('licenseFrontQuality', getOCRQuality(submission.ocrData?.frontImage));
+            }
+
+            if (submission.licenseBackImage) {
+                const backImg = document.getElementById('licenseBackImage');
+                backImg.src = `${API_URL}/kyc/admin/image/${submission.licenseBackImage}?token=${authToken}`;
+                updateImageQuality('licenseBackQuality', getOCRQuality(submission.ocrData?.backImage));
+            }
+        }
+
+        function displayFaceConfidence(submission) {
+            const faceDetection = submission.faceDetection;
+            
+            if (!faceDetection || faceDetection.identityConfidence === undefined) {
+                document.getElementById('faceConfidenceValue').textContent = 'N/A';
+                document.getElementById('faceConfidenceLabel').textContent = 'Not Available';
+                document.getElementById('faceConfidenceMessage').textContent = 'Face confidence data not available';
+                updateMatchIndicator('unknown', 'No Data');
+                return;
+            }
+
+            const confidence = faceDetection.identityConfidence;
+            const confidencePercent = Math.round(confidence);
+            
+            // Update value display
+            document.getElementById('faceConfidenceValue').textContent = `${confidencePercent}%`;
+            
+            // Update progress bar
+            const bar = document.getElementById('faceConfidenceBar');
+            bar.style.width = `${confidencePercent}%`;
+            document.getElementById('faceConfidencePercent').textContent = `${confidencePercent}%`;
+            
+            // Color coding and labels based on confidence level
+            let confidenceLabel, labelColor, barClass, matchStatus;
+            if (confidence >= 85) {
+                barClass = 'confidence-bar confidence-high h-full rounded-full flex items-center justify-center text-white font-bold transition-all duration-500';
+                confidenceLabel = 'High Confidence - Strong Match';
+                labelColor = 'text-green-700';
+                matchStatus = 'match';
+            } else if (confidence >= 60) {
+                barClass = 'confidence-bar confidence-medium h-full rounded-full flex items-center justify-center text-white font-bold transition-all duration-500';
+                confidenceLabel = 'Medium Confidence - Possible Match';
+                labelColor = 'text-yellow-700';
+                matchStatus = 'uncertain';
+            } else {
+                barClass = 'confidence-bar confidence-low h-full rounded-full flex items-center justify-center text-white font-bold transition-all duration-500';
+                confidenceLabel = 'Low Confidence - Weak Match';
+                labelColor = 'text-red-700';
+                matchStatus = 'mismatch';
+            }
+            
+            bar.className = barClass;
+            
+            // Update label with color
+            const labelElement = document.getElementById('faceConfidenceLabel');
+            labelElement.textContent = confidenceLabel;
+            labelElement.className = `text-sm font-medium ${labelColor}`;
+            
+            // Display message
+            const message = faceDetection.identityMessage || faceDetection.message || 'Face matching completed';
+            document.getElementById('faceConfidenceMessage').textContent = message;
+            
+            // Update match indicator
+            updateMatchIndicator(matchStatus, `${confidencePercent}%`);
+        }
+
+        function updateMatchIndicator(status, value) {
+            const indicator = document.getElementById('faceMatchIndicator');
+            const result = document.getElementById('matchResult');
+            
+            let icon, text, bgColor;
+            switch (status) {
+                case 'match':
+                    icon = '✅';
+                    text = `MATCH\n${value}`;
+                    bgColor = 'rgba(16, 185, 129, 0.9)';
+                    break;
+                case 'mismatch':
+                    icon = '❌';
+                    text = `MISMATCH\n${value}`;
+                    bgColor = 'rgba(239, 68, 68, 0.9)';
+                    break;
+                case 'uncertain':
+                    icon = '⚠️';
+                    text = `UNCERTAIN\n${value}`;
+                    bgColor = 'rgba(245, 158, 11, 0.9)';
+                    break;
+                default:
+                    icon = '🔍';
+                    text = 'NO DATA';
+                    bgColor = 'rgba(107, 114, 128, 0.9)';
+            }
+            
+            result.innerHTML = `
+                <div class="text-3xl mb-1">${icon}</div>
+                <div style="white-space: pre-line; line-height: 1.2;">${text}</div>
+            `;
+            indicator.style.background = bgColor;
+        }
+
+        function getImageQuality(faceDetection) {
+            if (!faceDetection || !faceDetection.confidence) return 'medium';
+            
+            const confidence = faceDetection.confidence;
+            if (confidence >= 90) return 'high';
+            if (confidence >= 70) return 'medium';
+            return 'low';
+        }
+
+        function getOCRQuality(ocrData) {
+            if (!ocrData || !ocrData.confidence) return 'medium';
+            
+            const confidence = ocrData.confidence;
+            if (confidence >= 90) return 'high';
+            if (confidence >= 70) return 'medium';
+            return 'low';
+        }
+
+        function updateImageQuality(elementId, quality) {
+            const element = document.getElementById(elementId);
+            element.className = `quality-indicator quality-${quality}`;
+            
+            switch (quality) {
+                case 'high':
+                    element.textContent = 'High Quality';
+                    break;
+                case 'medium':
+                    element.textContent = 'Medium Quality';
+                    break;
+                case 'low':
+                    element.textContent = 'Low Quality';
+                    break;
+                case 'none':
+                    element.textContent = 'No Image';
+                    element.className = 'quality-indicator quality-low';
+                    break;
+            }
+        }
+
+        function updateActionButtons(submission) {
+            const actionButtons = document.getElementById('actionButtons');
+            
+            if (submission.status !== 'pending') {
+                actionButtons.innerHTML = `
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Submission Status</h2>
+                    <div class="p-4 rounded-lg ${submission.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        <div class="font-semibold text-lg">
+                            ${submission.status === 'approved' ? '✅ Approved' : '❌ Rejected'}
+                        </div>
+                        ${submission.reviewNote ? `<div class="mt-2">${submission.reviewNote}</div>` : ''}
+                        ${submission.reviewedAt ? `<div class="text-sm mt-2">Reviewed: ${new Date(submission.reviewedAt).toLocaleString()}</div>` : ''}
+                    </div>
+                `;
+            }
+        }
+
+        // Zoom functionality
+        function openZoom(img) {
+            const overlay = document.getElementById('zoomOverlay');
+            const zoomedImg = document.getElementById('zoomedImage');
+            
+            zoomedImg.src = img.src;
+            overlay.classList.remove('hidden');
+            zoomLevel = 1;
+            updateZoom();
+        }
+
+        function closeZoom() {
+            document.getElementById('zoomOverlay').classList.add('hidden');
+        }
+
+        function zoomIn() {
+            zoomLevel = Math.min(zoomLevel * 1.2, 5);
+            updateZoom();
+        }
+
+        function zoomOut() {
+            zoomLevel = Math.max(zoomLevel / 1.2, 0.5);
+            updateZoom();
+        }
+
+        function updateZoom() {
+            const zoomedImg = document.getElementById('zoomedImage');
+            zoomedImg.style.transform = `scale(${zoomLevel})`;
+        }
+
+        // Admin actions
+        function approveSubmission() {
+            if (!currentSubmission) return;
+            
+            const note = prompt('Optional approval note:');
+            window.parent.postMessage({
+                action: 'approve',
+                submissionId: currentSubmission._id,
+                note: note || ''
+            }, '*');
+        }
+
+        function rejectSubmission() {
+            if (!currentSubmission) return;
+            
+            const reason = prompt('Rejection reason (required, min 10 characters):');
+            if (!reason || reason.trim().length < 10) {
+                alert('Rejection reason must be at least 10 characters');
+                return;
+            }
+            
+            window.parent.postMessage({
+                action: 'reject',
+                submissionId: currentSubmission._id,
+                reason: reason.trim()
+            }, '*');
+        }
+
+        function goBack() {
+            window.history.back();
+        }
+
+        // Handle keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeZoom();
+            }
+        });
+    </script>
+</body>
+</html>
