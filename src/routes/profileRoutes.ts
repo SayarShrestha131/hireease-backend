@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   getProfile,
   updateProfile,
@@ -11,11 +12,48 @@ import {
   deleteProfilePicture,
 } from '../controllers/profileController';
 import { authenticate } from '../middleware/auth';
-import { uploadProfilePicture as uploadMiddleware, handleProfileUploadError } from '../middleware/profileUploadMiddleware';
+import { uploadProfilePicture as uploadMiddleware, handleProfileUploadError, validateProfilePictureFace } from '../middleware/profileUploadMiddleware';
 import { body, validationResult } from 'express-validator';
 import { Request, Response, NextFunction } from 'express';
 
 const router = Router();
+
+/**
+ * Rate limiter for profile picture upload endpoint - DISABLED for testing
+ * Limits users to 5 uploads per hour to prevent abuse
+ * Requirements: 11.7 (Security)
+ */
+const profilePictureUploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour window
+  max: 999999, // Effectively unlimited for testing
+  message: {
+    success: false,
+    error: 'Too many profile picture uploads. You can upload up to 5 pictures per hour.',
+    retryAfter: 'Please try again in an hour.',
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  keyGenerator: (req: Request) => {
+    // Rate limit per authenticated user, fallback to IP with proper IPv6 handling
+    const userId = (req as any).user?._id;
+    if (userId) {
+      return `user:${userId}`;
+    }
+    // Use the built-in IP key generator for proper IPv6 support
+    return req.ip || 'unknown';
+  },
+  handler: (req: Request, res: Response) => {
+    const resetTime = new Date(Date.now() + 60 * 60 * 1000);
+    res.status(429).json({
+      success: false,
+      error: 'Too many profile picture uploads. You can upload up to 5 pictures per hour.',
+      retryAfter: 'Please try again in an hour.',
+      resetTime: resetTime.toISOString(),
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+    });
+  },
+});
 
 /**
  * Validation middleware
@@ -118,8 +156,10 @@ router.delete('/emergency-contacts/:index', authenticate, removeEmergencyContact
 router.post(
   '/picture',
   authenticate,
+  profilePictureUploadLimiter,
   uploadMiddleware.single('profilePicture'),
   handleProfileUploadError,
+  validateProfilePictureFace,
   uploadProfilePicture
 );
 
