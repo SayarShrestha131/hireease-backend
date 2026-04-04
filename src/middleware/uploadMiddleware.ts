@@ -3,6 +3,7 @@ import path from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
+import { generateSecureFilename, validatePathWithinDirectory } from '../services/fileStorageSecurityService';
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, '../../uploads/kyc');
@@ -18,19 +19,28 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: (req: Request, file: Express.Multer.File, cb) => {
-    // Generate unique filename: {userId}_{timestamp}_{uuid}.{ext}
-    const userId = (req as any).user?._id || 'anonymous';
-    const timestamp = Date.now();
-    const uniqueId = uuidv4();
-    const ext = path.extname(file.originalname);
-    const filename = `${userId}_${timestamp}_${uniqueId}${ext}`;
-    cb(null, filename);
+    // Generate secure unique filename with user ID association
+    const userId = ((req as any).user?._id || 'anonymous').toString();
+    const secureFilename = generateSecureFilename(userId, file.originalname);
+    
+    // Validate the generated filename and path
+    const uploadsDir = path.join(__dirname, '../../uploads/kyc');
+    const fullPath = path.join(uploadsDir, secureFilename);
+    const pathValidation = validatePathWithinDirectory(fullPath, uploadsDir);
+    
+    if (!pathValidation.isValid) {
+      cb(new Error('File path validation failed'), '');
+      return;
+    }
+    
+    cb(null, secureFilename);
   },
 });
 
 /**
  * File filter to validate file types
- * Only accept JPEG, JPG, PNG, and PDF files
+ * Accept JPEG, JPG, PNG, and PDF files
+ * More lenient to handle various MIME type formats
  */
 const fileFilter = (
   req: Request,
@@ -41,12 +51,23 @@ const fileFilter = (
     'image/jpeg',
     'image/jpg',
     'image/png',
+    'image/pjpeg', // Progressive JPEG
+    'image/x-png', // Alternative PNG MIME type
     'application/pdf',
   ];
 
-  if (allowedMimeTypes.includes(file.mimetype)) {
+  // Also check file extension as fallback
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf'];
+
+  if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
+    console.log('[Upload] Rejected file:', {
+      originalname: file.originalname,
+      mimetype: file.mimetype,
+      ext,
+    });
     cb(
       new Error(
         'Invalid file type. Only JPEG, JPG, PNG, and PDF files are allowed.'
