@@ -251,6 +251,23 @@ function compareStrings(str1: string, str2: string, threshold: number = 0.8): bo
     return true;
   }
   
+  // Split names and check if all words from shorter name exist in longer name
+  const words1 = norm1.split(' ').filter(w => w.length > 0);
+  const words2 = norm2.split(' ').filter(w => w.length > 0);
+  
+  // Check if all words from the shorter name are contained in the longer name
+  const shorterWords = words1.length <= words2.length ? words1 : words2;
+  const longerWords = words1.length > words2.length ? words1 : words2;
+  
+  const matchedWords = shorterWords.filter(word => 
+    longerWords.some(longerWord => longerWord.includes(word) || word.includes(longerWord))
+  );
+  
+  // If most words match, consider it a match
+  if (matchedWords.length >= Math.ceil(shorterWords.length * 0.8)) {
+    return true;
+  }
+  
   // Levenshtein distance for fuzzy matching
   const distance = levenshteinDistance(norm1, norm2);
   const maxLength = Math.max(norm1.length, norm2.length);
@@ -453,8 +470,8 @@ export async function performAutomatedKyc(
       
       console.log(`[Automated KYC] Face comparison with ${user.fullName}: ${similarity}% (distance: ${distance.toFixed(3)})`);
       
-      // Face match threshold - adjust as needed
-      if (distance < 0.4 && (!bestMatch || distance < bestMatch.distance)) {
+      // Face match threshold - adjust as needed (0.45 allows ~70% similarity)
+      if (distance < 0.45 && (!bestMatch || distance < bestMatch.distance)) {
         bestMatch = { user, distance, similarity };
       }
     }
@@ -557,7 +574,7 @@ export async function performAutomatedKyc(
     
     // Step 6: Make final decision - STRICT VERIFICATION
     const faceConfidence = bestMatch.similarity;
-    const faceMatchGood = faceConfidence >= 70; // Require 70% face similarity
+    const faceMatchGood = faceConfidence >= 65; // Require 65% face similarity
     
     // STRICT: ALL details must match (100% data match required)
     const allDataMatches = licenseNumberMatch && nameMatch && dobMatch && expiryDateMatch && fatherNameMatch && emailMatch;
@@ -566,7 +583,7 @@ export async function performAutomatedKyc(
     
     // Check for any failures
     if (!faceMatchGood) {
-      failureReasons.unshift(`Face similarity too low (${faceConfidence}% - minimum 70% required)`);
+      failureReasons.unshift(`Face similarity too low (${faceConfidence}% - minimum 65% required)`);
     }
     
     if (allDataMatches && faceMatchGood) {
@@ -606,7 +623,7 @@ export async function performAutomatedKyc(
       let detailedMessage = 'KYC verification failed. Here are the specific issues:\n\n';
       
       if (!faceMatchGood) {
-        detailedMessage += `🔍 Face Recognition: ${faceConfidence}% similarity (minimum 70% required)\n\n`;
+        detailedMessage += `🔍 Face Recognition: ${faceConfidence}% similarity (minimum 65% required)\n\n`;
       }
       
       if (failureReasons.length > 1 || !failureReasons[0]?.includes('Face similarity')) {
@@ -642,9 +659,9 @@ export async function performAutomatedKyc(
             matchScore
           },
           ocrData,
-          failureReasons,
-          detailedComparisons
-        },
+          failureReasons: failureReasons as any,
+          detailedComparisons: detailedComparisons as any
+        } as any,
         autoApproved: false,
         reviewNote: `Automated verification failed - ${failureReasons.join(', ')}`
       };

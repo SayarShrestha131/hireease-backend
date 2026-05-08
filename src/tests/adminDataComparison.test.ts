@@ -50,6 +50,7 @@ describe('Admin Data Comparison Functionality', () => {
           nameMatch: true,
           dobMatch: true,
           expiryDateMatch: true,
+          fatherNameMatch: true,
           matchScore: 95,
           checkedAt: new Date()
         }

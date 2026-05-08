@@ -71,6 +71,12 @@ export interface IBooking extends Document {
   paymentId?: string; // Payment gateway transaction ID
   paidAt?: Date;
   
+  // Enhanced Payment Gateway Fields
+  paymentGateway?: 'khalti' | 'stripe' | 'paypal' | 'esewa'; // Which gateway was used
+  paymentTransactionId?: mongoose.Types.ObjectId; // Reference to Payment_Transaction
+  paymentRetryCount: number; // Track retry attempts
+  paymentExpiresAt?: Date; // Payment link expiration
+  
   // Pickup/Return
   pickedUpAt?: Date;
   returnedAt?: Date;
@@ -160,6 +166,25 @@ const bookingSchema = new Schema<IBooking>(
       required: false,
     },
     paidAt: {
+      type: Date,
+      required: false,
+    },
+    paymentGateway: {
+      type: String,
+      enum: ['khalti', 'stripe', 'paypal', 'esewa'],
+      required: false,
+    },
+    paymentTransactionId: {
+      type: Schema.Types.ObjectId,
+      ref: 'PaymentTransaction',
+      required: false,
+    },
+    paymentRetryCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    paymentExpiresAt: {
       type: Date,
       required: false,
     },

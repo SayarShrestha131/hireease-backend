@@ -33,14 +33,9 @@ const profilePictureUploadLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  keyGenerator: (req: Request) => {
-    // Rate limit per authenticated user, fallback to IP with proper IPv6 handling
-    const userId = (req as any).user?._id;
-    if (userId) {
-      return `user:${userId}`;
-    }
-    // Use the built-in IP key generator for proper IPv6 support
-    return req.ip || 'unknown';
+  skip: (req: Request) => {
+    // Skip rate limiting for development
+    return process.env.NODE_ENV === 'development';
   },
   handler: (req: Request, res: Response) => {
     const resetTime = new Date(Date.now() + 60 * 60 * 1000);

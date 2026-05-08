@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khalti Payment Test - Development</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: monospace;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .status.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .response-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .test-credentials {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .test-credentials h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .test-credentials p {
+            color: #856404;
+            margin: 5px 0;
+            font-size: 13px;
+        }
+
+        .test-credentials strong {
+            color: #533f03;
+        }
+
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .step h3 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .step p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🔐 Khalti Payment Test</h1>
+            <p class="subtitle">Development Environment - Test the complete payment flow</p>
+
+            <div class="test-credentials">
+                <h3>📝 Khalti Test Credentials</h3>
+                <p><strong>Mobile:</strong> 9800000000 to 9800000010</p>
+                <p><strong>MPIN:</strong> 1111</p>
+                <p><strong>OTP:</strong> 987654</p>
+            </div>
+
+            <!-- Step 1: Authentication -->
+            <div class="step">
+                <h3>Step 1: Authentication</h3>
+                <p>Enter your JWT token from login</p>
+            </div>
+
+            <div class="form-group">
+                <label for="authToken">Auth Token *</label>
+                <textarea id="authToken" placeholder="Paste your JWT token here..."></textarea>
+            </div>
+
+            <!-- Step 2: Booking ID -->
+            <div class="step">
+                <h3>Step 2: Booking Information</h3>
+                <p>Enter the booking ID you want to pay for</p>
+            </div>
+
+            <div class="form-group">
+                <label for="bookingId">Booking ID *</label>
+                <input type="text" id="bookingId" placeholder="e.g., 67890abcdef1234567890abc">
+            </div>
+
+            <div class="form-group">
+                <label for="returnUrl">Return URL (optional)</label>
+                <input type="text" id="returnUrl" value="http://localhost:3000/payment/verify" placeholder="http://localhost:3000/payment/verify">
+            </div>
+
+            <!-- Step 3: Initiate Payment -->
+            <div class="step">
+                <h3>Step 3: Initiate Payment</h3>
+                <p>Click the button below to create a Khalti payment link</p>
+            </div>
+
+            <button id="initiateBtn" onclick="initiatePayment()">
+                Initiate Khalti Payment
+            </button>
+
+            <div id="statusMessage"></div>
+            <div id="responseBox" class="response-box hidden"></div>
+        </div>
+
+        <!-- Payment Link Card (hidden initially) -->
+        <div id="paymentCard" class="card hidden">
+            <h2>💳 Payment Link Ready</h2>
+            <p style="margin: 15px 0; color: #666;">Click the button below to proceed to Khalti payment page</p>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin-bottom: 8px; color: #666; font-size: 13px;"><strong>Transaction ID:</strong></p>
+                <p id="transactionId" style="font-family: monospace; color: #333; font-size: 14px;"></p>
+                
+                <p style="margin: 15px 0 8px 0; color: #666; font-size: 13px;"><strong>Amount:</strong></p>
+                <p id="paymentAmount" style="font-family: monospace; color: #333; font-size: 14px;"></p>
+                
+                <p style="margin: 15px 0 8px 0; color: #666; font-size: 13px;"><strong>Expires At:</strong></p>
+                <p id="expiresAt" style="font-family: monospace; color: #333; font-size: 14px;"></p>
+            </div>
+
+            <button id="payNowBtn" onclick="openPaymentUrl()">
+                Pay Now with Khalti
+            </button>
+
+            <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 8px; border: 1px solid #b3d9ff;">
+                <p style="color: #004085; font-size: 13px; line-height: 1.6;">
+                    <strong>ℹ️ Note:</strong> After completing payment on Khalti, you'll be redirected back. 
+                    The payment will be automatically verified.
+                </p>
+            </div>
+        </div>
+
+        <!-- Verification Card (shown after redirect) -->
+        <div id="verificationCard" class="card hidden">
+            <h2>✅ Verifying Payment...</h2>
+            <p style="margin: 15px 0; color: #666;">Please wait while we confirm your payment with Khalti</p>
+            <div class="status info">
+                <div class="loading"></div>
+                Verifying payment status...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000/api';
+        let currentTransactionId = '';
+        let currentPaymentUrl = '';
+
+        // Check if we're returning from Khalti
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const pidx = urlParams.get('pidx');
+            const status = urlParams.get('status');
+            const txnId = urlParams.get('txnId');
+
+            if (pidx && txnId) {
+                // We're returning from Khalti
+                document.getElementById('verificationCard').classList.remove('hidden');
+                verifyPayment(txnId, pidx, status);
+            }
+        });
+
+        async function initiatePayment() {
+            const authToken = document.getElementById('authToken').value.trim();
+            const bookingId = document.getElementById('bookingId').value.trim();
+            const returnUrl = document.getElementById('returnUrl').value.trim();
+
+            // Validation
+            if (!authToken) {
+                showStatus('error', 'Please enter your auth token');
+                return;
+            }
+
+            if (!bookingId) {
+                showStatus('error', 'Please enter a booking ID');
+                return;
+            }
+
+            // Disable button and show loading
+            const btn = document.getElementById('initiateBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Initiating Payment...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/payments/initiate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        bookingId: bookingId,
+                        paymentMethod: 'khalti',
+                        returnUrl: returnUrl || 'http://localhost:3000/payment/verify'
+                    })
+                });
+
+                const data = await response.json();
+
+                // Show response
+                showResponse(data);
+
+                if (response.ok && data.success) {
+                    // Store transaction details
+                    currentTransactionId = data.data.transactionId;
+                    currentPaymentUrl = data.data.paymentUrl;
+
+                    // Update payment card
+                    document.getElementById('transactionId').textContent = data.data.transactionId;
+                    document.getElementById('paymentAmount').textContent = `NPR ${data.data.amount || 'N/A'}`;
+                    document.getElementById('expiresAt').textContent = new Date(data.data.expiresAt).toLocaleString();
+
+                    // Show payment card
+                    document.getElementById('paymentCard').classList.remove('hidden');
+
+                    // Modify return URL to include transaction ID
+                    const url = new URL(currentPaymentUrl);
+                    const returnUrlWithTxn = `${returnUrl || 'http://localhost:3000/payment/verify'}?txnId=${currentTransactionId}`;
+                    
+                    // Update the payment URL (if Khalti API supports it)
+                    currentPaymentUrl = data.data.paymentUrl;
+
+                    showStatus('success', 'Payment link created successfully! Click "Pay Now" to proceed.');
+                } else {
+                    showStatus('error', data.error || 'Failed to initiate payment');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('error', `Network error: ${error.message}`);
+                showResponse({ error: error.message, stack: error.stack });
+            } finally {
+                // Re-enable button
+                btn.disabled = false;
+                btn.innerHTML = 'Initiate Khalti Payment';
+            }
+        }
+
+        function openPaymentUrl() {
+            if (!currentPaymentUrl) {
+                showStatus('error', 'Payment URL not available');
+                return;
+            }
+
+            // Add transaction ID to URL for tracking
+            const separator = currentPaymentUrl.includes('?') ? '&' : '?';
+            const urlWithTxn = `${currentPaymentUrl}${separator}txnId=${currentTransactionId}`;
+
+            // Open payment URL
+            window.location.href = urlWithTxn;
+        }
+
+        async function verifyPayment(transactionId, pidx, status) {
+            const authToken = document.getElementById('authToken').value.trim();
+
+            if (!authToken) {
+                showStatus('error', 'Auth token not found. Please refresh and try again.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/payments/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        transactionId: transactionId,
+                        gatewayData: {
+                            pidx: pidx,
+                            status: status
+                        }
+                    })
+                });
+
+                const data = await response.json();
+
+                // Hide verification card
+                document.getElementById('verificationCard').classList.add('hidden');
+
+                // Show response
+                showResponse(data);
+
+                if (response.ok && data.success) {
+                    showStatus('success', `✅ Payment verified successfully! Booking ID: ${data.data.bookingId}`);
+                    
+                    // Show receipt link if available
+                    if (data.data.receiptUrl) {
+                        const receiptLink = document.createElement('div');
+                        receiptLink.className = 'status info';
+                        receiptLink.style.marginTop = '15px';
+                        receiptLink.innerHTML = `
+                            <p><strong>📄 Receipt Available:</strong></p>
+                            <p style="margin-top: 8px;">
+                                <a href="${API_BASE_URL}${data.data.receiptUrl}" target="_blank" 
+                                   style="color: #0c5460; text-decoration: underline;">
+                                    Download Receipt
+                                </a>
+                            </p>
+                        `;
+                        document.getElementById('statusMessage').appendChild(receiptLink);
+                    }
+                } else {
+                    showStatus('error', data.error || 'Payment verification failed');
+                    
+                    if (data.suggestedAction) {
+                        const suggestion = document.createElement('div');
+                        suggestion.className = 'status warning';
+                        suggestion.style.marginTop = '15px';
+                        suggestion.innerHTML = `<strong>💡 Suggested Action:</strong><br>${data.suggestedAction}`;
+                        document.getElementById('statusMessage').appendChild(suggestion);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('verificationCard').classList.add('hidden');
+                showStatus('error', `Verification error: ${error.message}`);
+                showResponse({ error: error.message });
+            }
+        }
+
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function showResponse(data) {
+            const responseBox = document.getElementById('responseBox');
+            responseBox.textContent = JSON.stringify(data, null, 2);
+            responseBox.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

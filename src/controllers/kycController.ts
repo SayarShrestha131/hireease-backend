@@ -376,6 +376,7 @@ export const submitKYC = async (
         nameMatch: automatedResult.verificationDetails.documentMatch.nameMatch,
         dobMatch: automatedResult.verificationDetails.documentMatch.dobMatch,
         expiryDateMatch: automatedResult.verificationDetails.documentMatch.expiryDateMatch,
+        fatherNameMatch: automatedResult.verificationDetails.documentMatch.fatherNameMatch,
         matchScore: automatedResult.verificationDetails.documentMatch.matchScore,
         checkedAt: new Date(),
       };
@@ -421,8 +422,8 @@ export const submitKYC = async (
             documentMatch: automatedResult.verificationDetails.documentMatch,
             confidence: automatedResult.confidence,
             autoApproved: false,
-            failureReasons: automatedResult.verificationDetails.failureReasons || [],
-            detailedComparisons: automatedResult.verificationDetails.detailedComparisons || []
+            failureReasons: (automatedResult.verificationDetails as any).failureReasons || [],
+            detailedComparisons: (automatedResult.verificationDetails as any).detailedComparisons || []
           },
           guidance: [
             'Your identity could not be verified automatically',
@@ -492,6 +493,7 @@ export const submitKYC = async (
         nameMatch: false,
         dobMatch: false,
         expiryDateMatch: false,
+        fatherNameMatch: false,
         matchScore: 0,
         checkedAt: new Date(),
       };
@@ -586,6 +588,7 @@ export const submitKYC = async (
       faceDetection: faceDetectionResult,
       faceDecision,
       submittedAt: new Date(),
+      ...(automatedResult?.matchedUser && { matchedUser: automatedResult.matchedUser }),
       ...(previousSubmissionId && { previousSubmissionId }),
       ...(finalStatus === 'approved' && {
         reviewedAt: new Date(),

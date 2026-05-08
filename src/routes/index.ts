@@ -10,6 +10,7 @@ import faceVerificationRoutes from './faceVerificationRoutes';
 import faceRecognitionRoutes from './faceRecognitionRoutes';
 import registeredPersonRoutes from './registeredPersonRoutes';
 import identityVerificationRoutes from './identityVerificationRoutes';
+import paymentRoutes from './paymentRoutes';
 
 const router = Router();
 
@@ -72,6 +73,12 @@ router.use('/registered-persons', registeredPersonRoutes);
  * Accessible at /api/identity/*
  */
 router.use('/identity', identityVerificationRoutes);
+
+/**
+ * Mount payment routes at /payments
+ * Accessible at /api/payments/*
+ */
+router.use('/payments', paymentRoutes);
 
 /**
  * Health check endpoint

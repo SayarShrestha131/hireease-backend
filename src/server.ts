@@ -5,6 +5,7 @@ import { connectDatabase } from './config/database';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
+import { runSecurityStartupChecks, logSecurityConfiguration } from './utils/securityStartupChecks';
 
 /**
  * Initialize Express application
@@ -46,6 +47,9 @@ app.use(
   })
 );
 
+// Middleware to capture raw body for Stripe webhooks (must be before express.json())
+app.use('/api/payments/webhooks/stripe', express.raw({ type: 'application/json' }));
+
 // Parse incoming JSON request bodies
 app.use(express.json());
 
@@ -78,6 +82,19 @@ const startServer = async (): Promise<void> => {
   try {
     // Connect to MongoDB Atlas
     await connectDatabase();
+
+    // Run security startup checks (Requirements: 4.4, 4.5, 4.6, 17.1-17.8)
+    console.log('Running security and PCI DSS compliance checks...');
+    const securityChecksPassed = runSecurityStartupChecks();
+    
+    if (!securityChecksPassed && config.nodeEnv === 'production') {
+      console.error('\n⚠ CRITICAL: Security checks failed in production environment');
+      console.error('⚠ Server will continue but payment processing may be insecure');
+      console.error('⚠ Please address security issues immediately\n');
+    }
+    
+    // Log security configuration
+    logSecurityConfiguration();
 
     // Start HTTP server - bind to 0.0.0.0 to allow external connections
     const server = app.listen(config.port, '0.0.0.0', () => {

@@ -70,6 +70,7 @@ export interface IKYCSubmission extends Document {
     nameMatch: boolean;
     dobMatch: boolean;
     expiryDateMatch: boolean;
+    fatherNameMatch: boolean;
     matchScore: number; // Percentage of fields that match
     checkedAt: Date;
   };
@@ -119,6 +120,16 @@ export interface IKYCSubmission extends Document {
   
   // Auto-approval flag (to distinguish auto vs manual approval)
   isAutoApproved?: boolean;
+  
+  // Matched user data (for automated KYC)
+  matchedUser?: {
+    fullName: string;
+    licenseNumber: string;
+    fatherName?: string;
+    dateOfBirth: string;
+    email?: string;
+    licenseExpiryDate?: string;
+  };
   
   // Timestamps
   createdAt: Date;
@@ -278,6 +289,7 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
         nameMatch: Boolean,
         dobMatch: Boolean,
         expiryDateMatch: Boolean,
+        fatherNameMatch: Boolean,
         matchScore: Number,
         checkedAt: Date,
       },
@@ -346,6 +358,18 @@ const kycSubmissionSchema = new Schema<IKYCSubmission>(
       type: Boolean,
       required: false,
       default: false,
+    },
+    matchedUser: {
+      type: {
+        fullName: String,
+        licenseNumber: String,
+        fatherName: String,
+        dateOfBirth: String,
+        email: String,
+        licenseExpiryDate: String,
+      },
+      required: false,
+      _id: false,
     },
     statusHistory: {
       type: [
